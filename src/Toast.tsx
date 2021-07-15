@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
@@ -9,18 +10,22 @@ import ToastBody from './ToastBody';
 import { useBootstrapPrefix } from './ThemeProvider';
 import ToastContext from './ToastContext';
 import {
-  BsPrefixPropsWithChildren,
+  BsPrefixProps,
   BsPrefixRefForwardingComponent,
   TransitionComponent,
 } from './helpers';
+import { Variant } from './types';
 
-export interface ToastProps extends BsPrefixPropsWithChildren {
+export interface ToastProps
+  extends BsPrefixProps,
+    React.HTMLAttributes<HTMLElement> {
   animation?: boolean;
   autohide?: boolean;
   delay?: number;
   onClose?: () => void;
   show?: boolean;
   transition?: TransitionComponent;
+  bg?: Variant;
 }
 
 const propTypes = {
@@ -58,92 +63,96 @@ const propTypes = {
    * A `react-transition-group` Transition component used to animate the Toast on dismissal.
    */
   transition: PropTypes.elementType,
+
+  /**
+   * Sets Toast background
+   *
+   * @type {('primary'|'secondary'|'success'|'danger'|'warning'|'info'|'dark'|'light')}
+   */
+  bg: PropTypes.string,
 };
 
-const Toast: BsPrefixRefForwardingComponent<
-  'div',
-  ToastProps
-> = React.forwardRef<HTMLDivElement, ToastProps>(
-  (
-    {
-      bsPrefix,
-      className,
-      children,
-      transition: Transition = Fade,
-      show = true,
-      animation = true,
-      delay = 3000,
-      autohide = false,
-      onClose,
-      ...props
-    },
-    ref,
-  ) => {
-    bsPrefix = useBootstrapPrefix(bsPrefix, 'toast');
-
-    // We use refs for these, because we don't want to restart the autohide
-    // timer in case these values change.
-    const delayRef = useRef(delay);
-    const onCloseRef = useRef(onClose);
-
-    useEffect(() => {
-      delayRef.current = delay;
-      onCloseRef.current = onClose;
-    }, [delay, onClose]);
-
-    const autohideTimeout = useTimeout();
-    const autohideToast = !!(autohide && show);
-
-    const autohideFunc = useCallback(() => {
-      if (autohideToast) {
-        onCloseRef.current?.();
-      }
-    }, [autohideToast]);
-
-    useEffect(() => {
-      // Only reset timer if show or autohide changes.
-      autohideTimeout.set(autohideFunc, delayRef.current);
-    }, [autohideTimeout, autohideFunc]);
-
-    const toastContext = useMemo(
-      () => ({
+const Toast: BsPrefixRefForwardingComponent<'div', ToastProps> =
+  React.forwardRef<HTMLDivElement, ToastProps>(
+    (
+      {
+        bsPrefix,
+        className,
+        transition: Transition = Fade,
+        show = true,
+        animation = true,
+        delay = 5000,
+        autohide = false,
         onClose,
-      }),
-      [onClose],
-    );
+        bg,
+        ...props
+      },
+      ref,
+    ) => {
+      bsPrefix = useBootstrapPrefix(bsPrefix, 'toast');
 
-    const hasAnimation = !!(Transition && animation);
+      // We use refs for these, because we don't want to restart the autohide
+      // timer in case these values change.
+      const delayRef = useRef(delay);
+      const onCloseRef = useRef(onClose);
 
-    const toast = (
-      <div
-        {...props}
-        ref={ref}
-        className={classNames(
-          bsPrefix,
-          className,
-          !hasAnimation && (show ? 'show' : 'hide'),
-        )}
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
-      >
-        {children}
-      </div>
-    );
+      useEffect(() => {
+        delayRef.current = delay;
+        onCloseRef.current = onClose;
+      }, [delay, onClose]);
 
-    return (
-      <ToastContext.Provider value={toastContext}>
-        {hasAnimation && Transition ? (
-          <Transition in={show} unmountOnExit>
-            {toast}
-          </Transition>
-        ) : (
-          toast
-        )}
-      </ToastContext.Provider>
-    );
-  },
-);
+      const autohideTimeout = useTimeout();
+      const autohideToast = !!(autohide && show);
+
+      const autohideFunc = useCallback(() => {
+        if (autohideToast) {
+          onCloseRef.current?.();
+        }
+      }, [autohideToast]);
+
+      useEffect(() => {
+        // Only reset timer if show or autohide changes.
+        autohideTimeout.set(autohideFunc, delayRef.current);
+      }, [autohideTimeout, autohideFunc]);
+
+      const toastContext = useMemo(
+        () => ({
+          onClose,
+        }),
+        [onClose],
+      );
+
+      const hasAnimation = !!(Transition && animation);
+
+      const toast = (
+        <div
+          {...props}
+          ref={ref}
+          className={classNames(
+            bsPrefix,
+            className,
+            bg && `bg-${bg}`,
+            !hasAnimation && (show ? 'show' : 'hide'),
+          )}
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        />
+      );
+
+      return (
+        <ToastContext.Provider value={toastContext}>
+          {hasAnimation && Transition ? (
+            <Transition in={show} unmountOnExit>
+              {toast}
+            </Transition>
+          ) : (
+            toast
+          )}
+        </ToastContext.Provider>
+      );
+    },
+  );
 
 Toast.propTypes = propTypes;
 Toast.displayName = 'Toast';

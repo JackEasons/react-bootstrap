@@ -1,6 +1,5 @@
 import { mount } from 'enzyme';
-import React from 'react';
-import Card from '../src/Card';
+import CardHeader from '../src/CardHeader';
 import Nav from '../src/Nav';
 import Navbar from '../src/Navbar';
 import NavDropdown from '../src/NavDropdown';
@@ -74,14 +73,29 @@ describe('<Nav>', () => {
     ).assertSingle('div.navbar-nav');
   });
 
-  it('should be card aware', () => {
+  it('should handle navbarScroll only if within navbar', () => {
     mount(
-      <Card>
+      <Navbar>
+        <Nav navbarScroll />
+      </Navbar>,
+    ).assertSingle('div.navbar-nav.navbar-nav-scroll');
+  });
+
+  it('should not add navbarScroll when not within navbar', () => {
+    const wrapper = mount(<Nav navbarScroll />);
+
+    const nav = wrapper.find('div.nav');
+    expect(nav.hasClass('navbar-nav-scroll')).to.not.be.true;
+  });
+
+  it('should be card header aware', () => {
+    mount(
+      <CardHeader>
         <Nav variant="pills">
           <Nav.Link eventKey={1}>Pill 1 content</Nav.Link>
           <Nav.Link eventKey={2}>Pill 2 content</Nav.Link>
         </Nav>
-      </Card>,
+      </CardHeader>,
     ).assertSingle('div.card-header-pills');
   });
 

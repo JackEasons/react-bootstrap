@@ -3,6 +3,7 @@ import css from 'dom-helpers/css';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import Transition, {
+  TransitionStatus,
   ENTERED,
   ENTERING,
   EXITED,
@@ -12,10 +13,13 @@ import transitionEndListener from './transitionEndListener';
 import { TransitionCallbacks } from './helpers';
 import createChainedFunction from './createChainedFunction';
 import triggerBrowserReflow from './triggerBrowserReflow';
+import TransitionWrapper from './TransitionWrapper';
 
 type Dimension = 'height' | 'width';
 
-export interface CollapseProps extends TransitionCallbacks {
+export interface CollapseProps
+  extends TransitionCallbacks,
+    Pick<React.HTMLAttributes<HTMLElement>, 'role'> {
   className?: string;
   in?: boolean;
   mountOnEnter?: boolean;
@@ -25,7 +29,6 @@ export interface CollapseProps extends TransitionCallbacks {
   dimension?: Dimension | (() => Dimension);
   getDimensionValue?: (dimension: Dimension, element: HTMLElement) => number;
   children: React.ReactElement;
-  role?: string;
 }
 
 const MARGINS: { [d in Dimension]: string[] } = {
@@ -149,7 +152,7 @@ const defaultProps = {
   getDimensionValue: getDefaultDimensionValue,
 };
 
-const Collapse = React.forwardRef(
+const Collapse = React.forwardRef<Transition<any>, CollapseProps>(
   (
     {
       onEnter,
@@ -162,7 +165,7 @@ const Collapse = React.forwardRef(
       dimension = 'height',
       getDimensionValue = getDefaultDimensionValue,
       ...props
-    }: CollapseProps,
+    },
     ref,
   ) => {
     /* Compute dimension */
@@ -218,8 +221,7 @@ const Collapse = React.forwardRef(
     );
 
     return (
-      <Transition
-        // @ts-ignore
+      <TransitionWrapper
         ref={ref}
         addEndListener={transitionEndListener}
         {...props}
@@ -229,19 +231,20 @@ const Collapse = React.forwardRef(
         onEntered={handleEntered}
         onExit={handleExit}
         onExiting={handleExiting}
+        childRef={(children as any).ref}
       >
-        {(state, innerProps) => {
-          return React.cloneElement(children as any, {
+        {(state: TransitionStatus, innerProps: Record<string, unknown>) =>
+          React.cloneElement(children, {
             ...innerProps,
             className: classNames(
               className,
-              (children as any).props.className,
+              children.props.className,
               collapseStyles[state],
               computedDimension === 'width' && 'width',
             ),
-          });
-        }}
-      </Transition>
+          })
+        }
+      </TransitionWrapper>
     );
   },
 );

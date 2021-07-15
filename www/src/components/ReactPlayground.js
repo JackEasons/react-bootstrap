@@ -3,13 +3,7 @@ import classNames from 'classnames';
 import qsa from 'dom-helpers/querySelectorAll';
 import * as formik from 'formik';
 import PropTypes from 'prop-types';
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import * as ReactBootstrap from 'react-bootstrap';
 import ReactDOM from 'react-dom';
 import {
@@ -21,6 +15,7 @@ import {
 } from 'react-live';
 import * as yup from 'yup';
 import useIsomorphicEffect from '@restart/hooks/useIsomorphicEffect';
+import useMutationObserver from '@restart/hooks/useMutationObserver';
 import PlaceholderImage from './PlaceholderImage';
 import Sonnet from './Sonnet';
 
@@ -123,6 +118,19 @@ function Preview({ showCode, className }) {
       images: qsa(exampleRef.current, 'img'),
     });
   }, [hjs, live.element]);
+
+  useMutationObserver(exampleRef.current, {
+    childList: true, subtree: true },
+    (mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length > 0) {
+          hjs.run({
+            theme: 'gray',
+            images: qsa(exampleRef.current, 'img'),
+          });
+        }
+      });
+    });
 
   const handleClick = useCallback((e) => {
     if (e.target.tagName === 'A') {
