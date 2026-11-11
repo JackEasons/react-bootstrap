@@ -1,8 +1,8 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import camelize from 'dom-helpers/camelize';
-import React from 'react';
-import { useBootstrapPrefix } from './ThemeProvider';
-import { BsPrefixRefForwardingComponent } from './helpers';
+import * as React from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
 const pascalCase = (str) => str[0].toUpperCase() + camelize(str).slice(1);
 
@@ -14,7 +14,7 @@ interface BsPrefixOptions<As extends React.ElementType = 'div'> {
 
 // TODO: emstricten & fix the typing here! `createWithBsPrefix<TElementType>...`
 export default function createWithBsPrefix<
-  As extends React.ElementType = 'div'
+  As extends React.ElementType = 'div',
 >(
   prefix: string,
   {
@@ -22,23 +22,28 @@ export default function createWithBsPrefix<
     Component,
     defaultProps,
   }: BsPrefixOptions<As> = {},
-): BsPrefixRefForwardingComponent<As> {
+): DynamicRefForwardingComponent<As> {
   const BsComponent = React.forwardRef(
     (
       { className, bsPrefix, as: Tag = Component || 'div', ...props }: any,
       ref,
     ) => {
+      const componentProps = {
+        ...defaultProps,
+        ...props,
+      };
+
       const resolvedPrefix = useBootstrapPrefix(bsPrefix, prefix);
       return (
         <Tag
           ref={ref}
-          className={classNames(className, resolvedPrefix)}
-          {...props}
+          className={clsx(className, resolvedPrefix)}
+          {...componentProps}
         />
       );
     },
   );
-  BsComponent.defaultProps = defaultProps as any;
+
   BsComponent.displayName = displayName;
   return BsComponent as any;
 }

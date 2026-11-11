@@ -1,62 +1,45 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
-import { useBootstrapPrefix } from './ThemeProvider';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-import {
-  BsPrefixAndClassNameOnlyProps,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
-
-export interface TableProps extends BsPrefixAndClassNameOnlyProps {
-  striped?: boolean;
-  bordered?: boolean;
-  borderless?: boolean;
-  hover?: boolean;
-  size?: string;
-  variant?: string;
-  responsive?: boolean | string;
-}
-
-type Table = BsPrefixRefForwardingComponent<'table', TableProps>;
-
-const propTypes = {
+export interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   /**
    * @default 'table'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
 
   /**
    * Adds zebra-striping to any table row within the `<tbody>`.
+   * Use `columns` to add zebra-striping to any table column.
    */
-  striped: PropTypes.bool,
+  striped?: boolean | string | undefined;
 
   /**
    * Adds borders on all sides of the table and cells.
    */
-  bordered: PropTypes.bool,
+  bordered?: boolean | undefined;
 
   /**
    * Removes all borders on the table and cells, including table header.
    */
-  borderless: PropTypes.bool,
+  borderless?: boolean | undefined;
 
   /**
    * Enable a hover state on table rows within a `<tbody>`.
    */
-  hover: PropTypes.bool,
+  hover?: boolean | undefined;
 
   /**
    * Make tables more compact by cutting cell padding in half by setting
    * size as `sm`.
    */
-  size: PropTypes.string,
+  size?: string | undefined;
 
   /**
    * Invert the colors of the table — with light text on dark backgrounds
    * by setting variant as `dark`.
    */
-  variant: PropTypes.string,
+  variant?: string | undefined;
 
   /**
    * Responsive tables allow tables to be scrolled horizontally with ease.
@@ -67,10 +50,10 @@ const propTypes = {
    * a particular breakpoint. From that breakpoint and up, the table will
    * behave normally and not scroll horizontally.
    */
-  responsive: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
-};
+  responsive?: boolean | string | undefined;
+}
 
-const Table: Table = React.forwardRef<HTMLTableElement, TableProps>(
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
   (
     {
       bsPrefix,
@@ -83,16 +66,20 @@ const Table: Table = React.forwardRef<HTMLTableElement, TableProps>(
       variant,
       responsive,
       ...props
-    }: TableProps,
+    },
     ref,
   ) => {
     const decoratedBsPrefix = useBootstrapPrefix(bsPrefix, 'table');
-    const classes = classNames(
+
+    const classes = clsx(
       className,
       decoratedBsPrefix,
       variant && `${decoratedBsPrefix}-${variant}`,
       size && `${decoratedBsPrefix}-${size}`,
-      striped && `${decoratedBsPrefix}-striped`,
+      striped &&
+        `${decoratedBsPrefix}-${
+          typeof striped === 'string' ? `striped-${striped}` : 'striped'
+        }`,
       bordered && `${decoratedBsPrefix}-bordered`,
       borderless && `${decoratedBsPrefix}-borderless`,
       hover && `${decoratedBsPrefix}-hover`,
@@ -112,6 +99,6 @@ const Table: Table = React.forwardRef<HTMLTableElement, TableProps>(
   },
 );
 
-Table.propTypes = propTypes;
+Table.displayName = 'Table';
 
 export default Table;

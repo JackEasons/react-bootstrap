@@ -1,7 +1,9 @@
 import css from 'dom-helpers/css';
 import qsa from 'dom-helpers/querySelectorAll';
-import getScrollbarSize from 'dom-helpers/scrollbarSize';
-import ModalManager from 'react-overlays/ModalManager';
+import ModalManager, {
+  type ContainerState,
+  type ModalManagerOptions,
+} from '@restart/ui/ModalManager';
 
 const Selector = {
   FIXED_CONTENT: '.fixed-top, .fixed-bottom, .is-fixed, .sticky-top',
@@ -9,22 +11,21 @@ const Selector = {
   NAVBAR_TOGGLER: '.navbar-toggler',
 };
 
-export default class BootstrapModalManager extends ModalManager {
-  private adjustAndStore<T extends keyof CSSStyleDeclaration>(
+class BootstrapModalManager extends ModalManager {
+  private adjustAndStore<T extends Extract<keyof CSSStyleDeclaration, string>>(
     prop: T,
     element: HTMLElement,
     adjust: number,
   ) {
     const actual = element.style[prop];
-    // TODO: DOMStringMap and CSSStyleDeclaration aren't strictly compatible
-    // @ts-ignore
+    // @ts-expect-error TODO: DOMStringMap and CSSStyleDeclaration aren't strictly compatible
     element.dataset[prop] = actual;
     css(element, {
       [prop]: `${parseFloat(css(element, prop as any)) + adjust}px`,
     });
   }
 
-  private restore<T extends keyof CSSStyleDeclaration>(
+  private restore<T extends Extract<keyof CSSStyleDeclaration, string>>(
     prop: T,
     element: HTMLElement,
   ) {
@@ -35,34 +36,53 @@ export default class BootstrapModalManager extends ModalManager {
     }
   }
 
-  setContainerStyle(containerState, container) {
-    super.setContainerStyle(containerState, container);
+  setContainerStyle(containerState: ContainerState) {
+    super.setContainerStyle(containerState);
 
-    if (!containerState.overflowing) return;
-    const size = getScrollbarSize();
+    const container = this.getElement();
+    container.classList.add('modal-open');
+
+    if (!containerState.scrollBarWidth) return;
+
+    const paddingProp = this.isRTL ? 'paddingLeft' : 'paddingRight';
+    const marginProp = this.isRTL ? 'marginLeft' : 'marginRight';
 
     qsa(container, Selector.FIXED_CONTENT).forEach((el) =>
-      this.adjustAndStore('paddingRight', el, size),
+      this.adjustAndStore(paddingProp, el, containerState.scrollBarWidth),
     );
     qsa(container, Selector.STICKY_CONTENT).forEach((el) =>
-      this.adjustAndStore('marginRight', el, -size),
+      this.adjustAndStore(marginProp, el, -containerState.scrollBarWidth),
     );
     qsa(container, Selector.NAVBAR_TOGGLER).forEach((el) =>
-      this.adjustAndStore('marginRight', el, size),
+      this.adjustAndStore(marginProp, el, containerState.scrollBarWidth),
     );
   }
 
-  removeContainerStyle(containerState, container) {
-    super.removeContainerStyle(containerState, container);
+  removeContainerStyle(containerState: ContainerState) {
+    super.removeContainerStyle(containerState);
+
+    const container = this.getElement();
+    container.classList.remove('modal-open');
+
+    const paddingProp = this.isRTL ? 'paddingLeft' : 'paddingRight';
+    const marginProp = this.isRTL ? 'marginLeft' : 'marginRight';
 
     qsa(container, Selector.FIXED_CONTENT).forEach((el) =>
-      this.restore('paddingRight', el),
+      this.restore(paddingProp, el),
     );
     qsa(container, Selector.STICKY_CONTENT).forEach((el) =>
-      this.restore('marginRight', el),
+      this.restore(marginProp, el),
     );
     qsa(container, Selector.NAVBAR_TOGGLER).forEach((el) =>
-      this.restore('marginRight', el),
+      this.restore(marginProp, el),
     );
   }
 }
+
+let sharedManager: BootstrapModalManager | undefined;
+export function getSharedManager(options?: ModalManagerOptions) {
+  if (!sharedManager) sharedManager = new BootstrapModalManager(options);
+  return sharedManager;
+}
+
+export default BootstrapModalManager;

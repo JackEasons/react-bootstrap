@@ -1,77 +1,69 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
-import Button, { ButtonProps } from './Button';
-import {
-  BsPrefixAndClassNameOnlyProps,
-  BsPrefixComponentClass,
-} from './helpers';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import Button, { type ButtonProps } from './Button.js';
 
-export interface ToggleButtonProps
-  extends ButtonProps,
-    React.PropsWithChildren<BsPrefixAndClassNameOnlyProps> {
-  type?: 'checkbox' | 'radio';
-  name?: string;
-  checked?: boolean;
-  disabled?: boolean;
-  onChange?: React.ChangeEventHandler<HTMLInputElement>;
-  value: string | ReadonlyArray<string> | number;
-  inputRef?: React.LegacyRef<HTMLInputElement>;
-}
+export type ToggleButtonType = 'checkbox' | 'radio';
 
-type ToggleButton = BsPrefixComponentClass<'button', ToggleButtonProps>;
+export interface ToggleButtonProps extends Omit<
+  ButtonProps,
+  'onChange' | 'type'
+> {
+  /**
+   * @default 'btn-check'
+   */
+  bsPrefix?: string | undefined;
 
-const noop = () => undefined;
-
-const propTypes = {
   /**
    * The `<input>` element `type`
    */
-  type: PropTypes.oneOf(['checkbox', 'radio']),
+  type?: ToggleButtonType | undefined;
 
   /**
    * The HTML input name, used to group like checkboxes or radio buttons together
    * semantically
    */
-  name: PropTypes.string,
+  name?: string | undefined;
 
   /**
    * The checked state of the input, managed by `<ToggleButtonGroup>` automatically
    */
-  checked: PropTypes.bool,
+  checked?: boolean | undefined;
 
   /**
    * The disabled state of both the label and input
    */
-  disabled: PropTypes.bool,
+  disabled?: boolean | undefined;
+
+  /**
+   * `id` is required for button clicks to toggle input.
+   */
+  id: string;
 
   /**
    * A callback fired when the underlying input element changes. This is passed
    * directly to the `<input>` so shares the same signature as a native `onChange` event.
    */
-  onChange: PropTypes.func,
+  onChange?: React.ChangeEventHandler<HTMLInputElement> | undefined;
 
   /**
-   * The value of the input, should be unique amongst it's siblings when nested in a
+   * The value of the input, should be unique amongst its siblings when nested in a
    * `ToggleButtonGroup`.
    */
-  value: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.arrayOf(PropTypes.string),
-    PropTypes.number,
-  ]).isRequired,
+  value: string | ReadonlyArray<string> | number;
 
   /**
    * A ref attached to the `<input>` element
-   * @type {ReactRef}
    */
-  inputRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
-};
+  inputRef?: React.Ref<HTMLInputElement> | undefined;
+}
 
-const ToggleButton = React.forwardRef<any, ToggleButtonProps>(
+const noop = () => undefined;
+
+const ToggleButton = React.forwardRef<HTMLLabelElement, ToggleButtonProps>(
   (
     {
-      children,
+      bsPrefix,
       name,
       className,
       checked,
@@ -79,54 +71,43 @@ const ToggleButton = React.forwardRef<any, ToggleButtonProps>(
       onChange,
       value,
       disabled,
+      id,
       inputRef,
       ...props
-    }: ToggleButtonProps,
+    },
     ref,
   ) => {
-    const [focused, setFocused] = useState(false);
-
-    const handleFocus = useCallback((e) => {
-      if (e.target.tagName === 'INPUT') setFocused(true);
-    }, []);
-
-    const handleBlur = useCallback((e) => {
-      if (e.target.tagName === 'INPUT') setFocused(false);
-    }, []);
+    bsPrefix = useBootstrapPrefix(bsPrefix, 'btn-check');
 
     return (
-      <Button
-        {...props}
-        ref={ref}
-        className={classNames(
-          className,
-          focused && 'focus',
-          disabled && 'disabled',
-        )}
-        type={undefined}
-        active={!!checked}
-        as="label"
-      >
+      <>
         <input
+          className={bsPrefix}
           name={name}
           type={type}
-          value={value as any}
-          ref={inputRef as any}
+          value={value}
+          ref={inputRef}
           autoComplete="off"
           checked={!!checked}
           disabled={!!disabled}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           onChange={onChange || noop}
+          id={id}
         />
-
-        {children}
-      </Button>
+        <Button
+          {...props}
+          ref={ref}
+          className={clsx(className, disabled && 'disabled')}
+          type={undefined}
+          role={undefined}
+          tabIndex={undefined}
+          as="label"
+          htmlFor={id}
+        />
+      </>
     );
   },
 );
 
-ToggleButton.propTypes = propTypes as any;
 ToggleButton.displayName = 'ToggleButton';
 
 export default ToggleButton;

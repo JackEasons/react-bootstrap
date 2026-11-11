@@ -1,34 +1,75 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import css from 'dom-helpers/css';
-import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
-import Transition, {
-  ENTERED,
-  ENTERING,
-  EXITED,
-  EXITING,
-} from 'react-transition-group/Transition';
-import transitionEndListener from './transitionEndListener';
-import { TransitionCallbacks } from './helpers';
-import createChainedFunction from './createChainedFunction';
-import triggerBrowserReflow from './triggerBrowserReflow';
+import { Transition, type TransitionStatus } from 'react-transition-group';
+import { getChildRef } from '@restart/ui/utils';
+import transitionEndListener from './transitionEndListener.js';
+import createChainedFunction from './createChainedFunction.js';
+import triggerBrowserReflow from './triggerBrowserReflow.js';
+import TransitionWrapper from './TransitionWrapper.js';
+import type { TransitionCallbacks } from './types.js';
 
 type Dimension = 'height' | 'width';
 
-export interface CollapseProps extends TransitionCallbacks {
-  className?: string;
-  in?: boolean;
-  mountOnEnter?: boolean;
-  unmountOnExit?: boolean;
-  appear?: boolean;
-  timeout?: number;
-  dimension?: Dimension | (() => Dimension);
-  getDimensionValue?: (dimension: Dimension, element: HTMLElement) => number;
+export interface CollapseProps
+  extends
+    TransitionCallbacks,
+    Pick<React.HTMLAttributes<HTMLElement>, 'className' | 'role'> {
+  /**
+   * Show the component; triggers the expand or collapse animation
+   */
+  in?: boolean | undefined;
+
+  /**
+   * Wait until the first "enter" transition to mount the component (add it to the DOM)
+   */
+  mountOnEnter?: boolean | undefined;
+
+  /**
+   * Unmount the component (remove it from the DOM) when it is collapsed
+   */
+  unmountOnExit?: boolean | undefined;
+
+  /**
+   * Run the expand animation when the component mounts, if it is initially shown
+   */
+  appear?: boolean | undefined;
+
+  /**
+   * Duration of the collapse animation in milliseconds, to ensure that
+   * finishing callbacks are fired even if the original browser transition end
+   * events are canceled
+   */
+  timeout?: number | undefined;
+
+  /**
+   * The dimension used when collapsing, or a function that returns the
+   * dimension
+   *
+   * @type {'height' | 'width' | (() => 'height' | 'width')  | undefined}
+   */
+  dimension?: Dimension | (() => Dimension) | undefined;
+
+  /**
+   * Function that returns the height or width of the animating DOM node
+   *
+   * Allows for providing some custom logic for how much the Collapse component
+   * should animate in its specified dimension. Called with the current
+   * dimension prop value and the DOM node.
+   *
+   * @type {((dimension: Dimension, element: HTMLElement) => number) | undefined}
+   * @default element.offsetWidth | element.offsetHeight
+   */
+  getDimensionValue?:
+    ((dimension: Dimension, element: HTMLElement) => number) | undefined;
+
+  /**
+   * You must provide a single JSX child element to this component and that element cannot be a \<React.Fragment\>
+   */
   children: React.ReactElement;
-  role?: string;
 }
 
-const MARGINS: { [d in Dimension]: string[] } = {
+const MARGINS: Record<Dimension, string[]> = {
   height: ['marginTop', 'marginBottom'],
   width: ['marginLeft', 'marginRight'],
 };
@@ -43,113 +84,21 @@ function getDefaultDimensionValue(
 
   return (
     value +
-    // @ts-ignore
+    // @ts-expect-error TODO
     parseInt(css(elem, margins[0]), 10) +
-    // @ts-ignore
+    // @ts-expect-error TODO
     parseInt(css(elem, margins[1]), 10)
   );
 }
 
 const collapseStyles = {
-  [EXITED]: 'collapse',
-  [EXITING]: 'collapsing',
-  [ENTERING]: 'collapsing',
-  [ENTERED]: 'collapse show',
+  exited: 'collapse',
+  exiting: 'collapsing',
+  entering: 'collapsing',
+  entered: 'collapse show',
 };
 
-const propTypes = {
-  /**
-   * Show the component; triggers the expand or collapse animation
-   */
-  in: PropTypes.bool,
-
-  /**
-   * Wait until the first "enter" transition to mount the component (add it to the DOM)
-   */
-  mountOnEnter: PropTypes.bool,
-
-  /**
-   * Unmount the component (remove it from the DOM) when it is collapsed
-   */
-  unmountOnExit: PropTypes.bool,
-
-  /**
-   * Run the expand animation when the component mounts, if it is initially
-   * shown
-   */
-  appear: PropTypes.bool,
-
-  /**
-   * Duration of the collapse animation in milliseconds, to ensure that
-   * finishing callbacks are fired even if the original browser transition end
-   * events are canceled
-   */
-  timeout: PropTypes.number,
-
-  /**
-   * Callback fired before the component expands
-   */
-  onEnter: PropTypes.func,
-  /**
-   * Callback fired after the component starts to expand
-   */
-  onEntering: PropTypes.func,
-  /**
-   * Callback fired after the component has expanded
-   */
-  onEntered: PropTypes.func,
-  /**
-   * Callback fired before the component collapses
-   */
-  onExit: PropTypes.func,
-  /**
-   * Callback fired after the component starts to collapse
-   */
-  onExiting: PropTypes.func,
-  /**
-   * Callback fired after the component has collapsed
-   */
-  onExited: PropTypes.func,
-
-  /**
-   * The dimension used when collapsing, or a function that returns the
-   * dimension
-   *
-   * _Note: Bootstrap only partially supports 'width'!
-   * You will need to supply your own CSS animation for the `.width` CSS class._
-   */
-  dimension: PropTypes.oneOfType([
-    PropTypes.oneOf(['height', 'width']),
-    PropTypes.func,
-  ]),
-
-  /**
-   * Function that returns the height or width of the animating DOM node
-   *
-   * Allows for providing some custom logic for how much the Collapse component
-   * should animate in its specified dimension. Called with the current
-   * dimension prop value and the DOM node.
-   *
-   * @default element.offsetWidth | element.offsetHeight
-   */
-  getDimensionValue: PropTypes.func,
-
-  /**
-   * ARIA role of collapsible element
-   */
-  role: PropTypes.string,
-};
-
-const defaultProps = {
-  in: false,
-  timeout: 300,
-  mountOnEnter: false,
-  unmountOnExit: false,
-  appear: false,
-  getDimensionValue: getDefaultDimensionValue,
-};
-
-const Collapse = React.forwardRef(
+const Collapse = React.forwardRef<Transition<any>, CollapseProps>(
   (
     {
       onEnter,
@@ -160,9 +109,14 @@ const Collapse = React.forwardRef(
       className,
       children,
       dimension = 'height',
+      in: inProp = false,
+      timeout = 300,
+      mountOnEnter = false,
+      unmountOnExit = false,
+      appear = false,
       getDimensionValue = getDefaultDimensionValue,
       ...props
-    }: CollapseProps,
+    },
     ref,
   ) => {
     /* Compute dimension */
@@ -218,37 +172,39 @@ const Collapse = React.forwardRef(
     );
 
     return (
-      <Transition
-        // @ts-ignore
+      <TransitionWrapper
         ref={ref}
         addEndListener={transitionEndListener}
         {...props}
-        aria-expanded={props.role ? props.in : null}
+        aria-expanded={props.role ? inProp : null}
         onEnter={handleEnter}
         onEntering={handleEntering}
         onEntered={handleEntered}
         onExit={handleExit}
         onExiting={handleExiting}
+        childRef={getChildRef(children)}
+        in={inProp}
+        timeout={timeout}
+        mountOnEnter={mountOnEnter}
+        unmountOnExit={unmountOnExit}
+        appear={appear}
       >
-        {(state, innerProps) => {
-          return React.cloneElement(children as any, {
+        {(state: TransitionStatus, innerProps: Record<string, unknown>) =>
+          React.cloneElement(children as any, {
             ...innerProps,
-            className: classNames(
+            className: clsx(
               className,
-              (children as any).props.className,
+              (children.props as any).className,
               collapseStyles[state],
-              computedDimension === 'width' && 'width',
+              computedDimension === 'width' && 'collapse-horizontal',
             ),
-          });
-        }}
-      </Transition>
+          })
+        }
+      </TransitionWrapper>
     );
   },
 );
 
-// @ts-ignore
-Collapse.propTypes = propTypes;
-// @ts-ignore
-Collapse.defaultProps = defaultProps;
+Collapse.displayName = 'Collapse';
 
 export default Collapse;

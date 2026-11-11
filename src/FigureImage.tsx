@@ -1,22 +1,19 @@
-import classNames from 'classnames';
-import React from 'react';
+import clsx from 'clsx';
+import * as React from 'react';
 
-import Image, { ImageProps, propTypes as imagePropTypes } from './Image';
-
-const defaultProps = { fluid: true };
+import Image, { type ImageProps } from './Image.js';
 
 const FigureImage = React.forwardRef<HTMLImageElement, ImageProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, fluid = true, ...props }, ref) => (
     <Image
       ref={ref}
       {...props}
-      className={classNames(className, 'figure-img')}
+      fluid={fluid}
+      className={clsx(className, 'figure-img')}
     />
   ),
 );
 
 FigureImage.displayName = 'FigureImage';
-FigureImage.propTypes = imagePropTypes;
-FigureImage.defaultProps = defaultProps;
 
 export default FigureImage;

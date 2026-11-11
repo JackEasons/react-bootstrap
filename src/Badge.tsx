@@ -1,73 +1,71 @@
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import React from 'react';
+import clsx from 'clsx';
+import * as React from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import type { Color, Variant } from './types.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import { BsPrefixProps, BsPrefixRefForwardingComponent } from './helpers';
-import { Variant } from './types';
+export interface BadgeProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface BadgeProps extends BsPrefixProps {
-  variant?: Variant;
-  pill?: boolean;
-}
-
-type Badge = BsPrefixRefForwardingComponent<'span', BadgeProps>;
-
-const propTypes = {
-  /** @default 'badge' */
-  bsPrefix: PropTypes.string,
+  /**
+   * @default 'badge'
+   */
+  bsPrefix?: string | undefined;
 
   /**
    * The visual style of the badge
    *
-   * @type {('primary'|'secondary'|'success'|'danger'|'warning'|'info'|'light'|'dark')}
+   * @type {'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark' | undefined}
    */
-  variant: PropTypes.string,
+  bg?: Variant | undefined;
 
   /**
-   * Add the `pill` modifier to make badges more rounded with
-   * some additional horizontal padding
+   * Make badges more rounded with some additional horizontal padding
    */
-  pill: PropTypes.bool.isRequired,
+  pill?: boolean | undefined;
 
-  /** @default span */
-  as: PropTypes.elementType,
-};
+  /**
+   * Sets badge text color
+   *
+   * @type {'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark' | 'white' | 'muted' | undefined}
+   */
+  text?: Color | undefined;
+}
 
-const defaultProps = {
-  pill: false,
-};
-
-const Badge: Badge = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      variant,
-      pill,
-      className,
-      as: Component = 'span',
-      ...props
-    }: BadgeProps,
-    ref,
-  ) => {
-    const prefix = useBootstrapPrefix(bsPrefix, 'badge');
-    return (
-      <Component
-        ref={ref}
-        {...props}
-        className={classNames(
-          className,
-          prefix,
-          pill && `${prefix}-pill`,
-          variant && `${prefix}-${variant}`,
-        )}
-      />
-    );
-  },
-);
+const Badge: DynamicRefForwardingComponent<'span', BadgeProps> =
+  React.forwardRef<HTMLElement, BadgeProps>(
+    (
+      {
+        bsPrefix,
+        bg = 'primary',
+        pill = false,
+        text,
+        className,
+        as: Component = 'span',
+        ...props
+      },
+      ref,
+    ) => {
+      const prefix = useBootstrapPrefix(bsPrefix, 'badge');
+      return (
+        <Component
+          ref={ref}
+          {...props}
+          className={clsx(
+            className,
+            prefix,
+            pill && `rounded-pill`,
+            text && `text-${text}`,
+            bg && `bg-${bg}`,
+          )}
+        />
+      );
+    },
+  );
 
 Badge.displayName = 'Badge';
-Badge.propTypes = propTypes;
-Badge.defaultProps = defaultProps;
 
 export default Badge;

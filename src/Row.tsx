@@ -1,13 +1,11 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-
-import React from 'react';
-
-import { useBootstrapPrefix } from './ThemeProvider';
+import clsx from 'clsx';
+import * as React from 'react';
+import { DynamicRefForwardingComponent } from '@restart/ui/types';
 import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+  useBootstrapPrefix,
+  useBootstrapBreakpoints,
+  useBootstrapMinBreakpoint,
+} from './ThemeProvider.js';
 
 type RowColWidth =
   | number
@@ -22,86 +20,68 @@ type RowColWidth =
   | '9'
   | '10'
   | '11'
-  | '12';
+  | '12'
+  | 'auto';
 type RowColumns = RowColWidth | { cols?: RowColWidth };
 
-export interface RowProps extends BsPrefixPropsWithChildren {
-  noGutters?: boolean;
-  xs?: RowColumns;
-  sm?: RowColumns;
-  md?: RowColumns;
-  lg?: RowColumns;
-  xl?: RowColumns;
-}
+export interface RowProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-type Row = BsPrefixRefForwardingComponent<'div', RowProps>;
-
-const DEVICE_SIZES = ['xl', 'lg', 'md', 'sm', 'xs'];
-const rowColWidth = PropTypes.oneOfType([PropTypes.number, PropTypes.string]);
-
-const rowColumns = PropTypes.oneOfType([
-  rowColWidth,
-  PropTypes.shape({
-    cols: rowColWidth,
-  }),
-]);
-
-const propTypes = {
   /**
    * @default 'row'
    */
-  bsPrefix: PropTypes.string,
-
-  /** Removes the gutter spacing between `Col`s as well as any added negative margins. */
-  noGutters: PropTypes.bool.isRequired,
-  as: PropTypes.elementType,
+  bsPrefix?: string | undefined;
 
   /**
-   * The number of columns that will fit next to each other on extra small devices (<576px)
-   *
-   * @type {(number|{ cols: number })}
+   * The number of columns that will fit next to each other on extra small devices (<576px).
+   * Use `auto` to give columns their natural widths.
    */
-  xs: rowColumns,
+  xs?: RowColumns | undefined;
 
   /**
-   * The number of columns that will fit next to each other on small devices (≥576px)
-   *
-   * @type {(number|{ cols: number })}
+   * The number of columns that will fit next to each other on small devices (≥576px).
+   * Use `auto` to give columns their natural widths.
    */
-  sm: rowColumns,
+  sm?: RowColumns | undefined;
 
   /**
-   * The number of columns that will fit next to each other on medium devices (≥768px)
-   *
-   * @type {(number|{ cols: number })}
+   * The number of columns that will fit next to each other on medium devices (≥768px).
+   * Use `auto` to give columns their natural widths.
    */
-  md: rowColumns,
+  md?: RowColumns | undefined;
 
   /**
-   * The number of columns that will fit next to each other on large devices (≥992px)
-   *
-   * @type {(number|{ cols: number })}
+   * The number of columns that will fit next to each other on large devices (≥992px).
+   * Use `auto` to give columns their natural widths.
    */
-  lg: rowColumns,
+  lg?: RowColumns | undefined;
 
   /**
-   * The number of columns that will fit next to each other on extra large devices (≥1200px)
-   *
-   * @type {(number|{ cols: number })}
+   * The number of columns that will fit next to each other on extra large devices (≥1200px).
+   * Use `auto` to give columns their natural widths.
    */
-  xl: rowColumns,
-};
+  xl?: RowColumns | undefined;
 
-const defaultProps = {
-  noGutters: false,
-};
+  /**
+   * The number of columns that will fit next to each other on extra extra large devices (≥1400px).
+   * Use `auto` to give columns their natural widths.
+   */
+  xxl?: RowColumns | undefined;
 
-const Row: Row = React.forwardRef<HTMLDivElement, RowProps>(
+  [key: string]: any;
+}
+
+const Row: DynamicRefForwardingComponent<'div', RowProps> = React.forwardRef<
+  HTMLDivElement,
+  RowProps
+>(
   (
     {
       bsPrefix,
       className,
-      noGutters,
       // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
       as: Component = 'div',
       ...props
@@ -109,10 +89,13 @@ const Row: Row = React.forwardRef<HTMLDivElement, RowProps>(
     ref,
   ) => {
     const decoratedBsPrefix = useBootstrapPrefix(bsPrefix, 'row');
+    const breakpoints = useBootstrapBreakpoints();
+    const minBreakpoint = useBootstrapMinBreakpoint();
+
     const sizePrefix = `${decoratedBsPrefix}-cols`;
     const classes: string[] = [];
 
-    DEVICE_SIZES.forEach((brkPoint) => {
+    breakpoints.forEach((brkPoint) => {
       const propValue = props[brkPoint];
       delete props[brkPoint];
 
@@ -123,7 +106,7 @@ const Row: Row = React.forwardRef<HTMLDivElement, RowProps>(
         cols = propValue;
       }
 
-      const infix = brkPoint !== 'xs' ? `-${brkPoint}` : '';
+      const infix = brkPoint !== minBreakpoint ? `-${brkPoint}` : '';
 
       if (cols != null) classes.push(`${sizePrefix}${infix}-${cols}`);
     });
@@ -132,19 +115,12 @@ const Row: Row = React.forwardRef<HTMLDivElement, RowProps>(
       <Component
         ref={ref}
         {...props}
-        className={classNames(
-          className,
-          decoratedBsPrefix,
-          noGutters && 'no-gutters',
-          ...classes,
-        )}
+        className={clsx(className, decoratedBsPrefix, ...classes)}
       />
     );
   },
 );
 
 Row.displayName = 'Row';
-Row.propTypes = propTypes;
-Row.defaultProps = defaultProps;
 
 export default Row;

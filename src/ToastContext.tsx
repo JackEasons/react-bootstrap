@@ -1,13 +1,13 @@
-import React from 'react';
+import * as React from 'react';
 
-// TODO: check
 export interface ToastContextType {
-  onClose?: (e: Event) => void;
+  onClose?: ((e?: React.MouseEvent | React.KeyboardEvent) => void) | undefined;
 }
 
 const ToastContext = React.createContext<ToastContextType>({
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onClose() {},
 });
+
+ToastContext.displayName = 'ToastContext';
 
 export default ToastContext;

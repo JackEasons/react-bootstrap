@@ -1,54 +1,42 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useContext } from 'react';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useContext } from 'react';
 import useEventCallback from '@restart/hooks/useEventCallback';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import CloseButton, { type CloseButtonVariant } from './CloseButton.js';
+import ToastContext from './ToastContext.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import CloseButton from './CloseButton';
-import ToastContext from './ToastContext';
-import {
-  BsPrefixAndClassNameOnlyProps,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
-
-export interface ToastHeaderProps
-  extends React.PropsWithChildren<BsPrefixAndClassNameOnlyProps> {
-  closeLabel?: string;
-  closeButton?: boolean;
-}
-
-type ToastHeader = BsPrefixRefForwardingComponent<'div', ToastHeaderProps>;
-
-const propTypes = {
-  bsPrefix: PropTypes.string,
+export interface ToastHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * @default 'toast-header'
+   */
+  bsPrefix?: string | undefined;
 
   /**
    * Provides an accessible label for the close
    * button. It is used for Assistive Technology when the label text is not
    * readable.
    */
-  closeLabel: PropTypes.string,
+  closeLabel?: string | undefined;
+
+  /**
+   * Sets the variant for close button.
+   */
+  closeVariant?: CloseButtonVariant | undefined;
 
   /**
    * Specify whether the Component should contain a close button
    */
-  closeButton: PropTypes.bool,
-};
+  closeButton?: boolean | undefined;
+}
 
-const defaultProps = {
-  closeLabel: 'Close',
-  closeButton: true,
-};
-
-const ToastHeader: ToastHeader = React.forwardRef<
-  HTMLDivElement,
-  ToastHeaderProps
->(
+const ToastHeader = React.forwardRef<HTMLDivElement, ToastHeaderProps>(
   (
     {
       bsPrefix,
-      closeLabel,
-      closeButton,
+      closeLabel = 'Close',
+      closeVariant,
+      closeButton = true,
       className,
       children,
       ...props
@@ -60,20 +48,18 @@ const ToastHeader: ToastHeader = React.forwardRef<
     const context = useContext(ToastContext);
 
     const handleClick = useEventCallback((e) => {
-      if (context && context.onClose) {
-        context.onClose(e);
-      }
+      context?.onClose?.(e);
     });
 
     return (
-      <div ref={ref} {...props} className={classNames(bsPrefix, className)}>
+      <div ref={ref} {...props} className={clsx(bsPrefix, className)}>
         {children}
 
         {closeButton && (
           <CloseButton
-            label={closeLabel}
+            aria-label={closeLabel}
+            variant={closeVariant}
             onClick={handleClick}
-            className="ml-2 mb-1"
             data-dismiss="toast"
           />
         )}
@@ -83,7 +69,5 @@ const ToastHeader: ToastHeader = React.forwardRef<
 );
 
 ToastHeader.displayName = 'ToastHeader';
-ToastHeader.propTypes = propTypes;
-ToastHeader.defaultProps = defaultProps;
 
 export default ToastHeader;

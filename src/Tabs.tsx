@@ -1,99 +1,28 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-
-import requiredForA11y from 'prop-types-extra/lib/isRequiredForA11y';
+import * as React from 'react';
 import { useUncontrolled } from 'uncontrollable';
+import BaseTabs, { TabsProps as BaseTabsProps } from '@restart/ui/Tabs';
+import Nav, { type NavProps } from './Nav.js';
+import NavLink from './NavLink.js';
+import NavItem from './NavItem.js';
+import TabContent from './TabContent.js';
+import TabPane from './TabPane.js';
+import { forEach, map } from './ElementChildren.js';
+import getTabTransitionComponent from './getTabTransitionComponent.js';
+import type { TransitionType } from './helpers.js';
 
-import Nav from './Nav';
-import NavLink from './NavLink';
-import NavItem from './NavItem';
-import TabContainer from './TabContainer';
-import TabContent from './TabContent';
-import TabPane from './TabPane';
-
-import { forEach, map } from './ElementChildren';
-import { SelectCallback, TransitionType } from './helpers';
-import { EventKey } from './types';
-
-export interface TabsProps extends React.PropsWithChildren<unknown> {
-  activeKey?: EventKey;
-  defaultActiveKey?: EventKey;
-  onSelect?: SelectCallback;
-  variant?: 'tabs' | 'pills';
-  transition?: TransitionType;
-  id?: string;
-  mountOnEnter?: boolean;
-  unmountOnExit?: boolean;
-}
-
-const propTypes = {
+export interface TabsProps
+  extends
+    Omit<BaseTabsProps, 'transition'>,
+    Omit<React.HTMLAttributes<HTMLElement>, 'onSelect' | 'role'>,
+    NavProps {
   /**
-   * Mark the Tab with a matching `eventKey` as active.
+   * Sets a default animation strategy for all children `<TabPane>`s.<tbcont
    *
-   * @controllable onSelect
-   */
-  activeKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  /** The default active key that is selected on start */
-  defaultActiveKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-
-  /**
-   * Navigation style
-   *
-   * @type {('tabs'| 'pills')}
-   */
-  variant: PropTypes.string,
-
-  /**
-   * Sets a default animation strategy for all children `<TabPane>`s.
    * Defaults to `<Fade>` animation, else use `false` to disable or a
    * react-transition-group `<Transition/>` component.
-   *
-   * @type {Transition | false}
-   * @default {Fade}
    */
-  transition: PropTypes.oneOfType([
-    PropTypes.oneOf([false]),
-    PropTypes.elementType,
-  ]),
-
-  /**
-   * HTML id attribute, required if no `generateChildId` prop
-   * is specified.
-   *
-   * @type {string}
-   */
-  id: requiredForA11y(PropTypes.string),
-
-  /**
-   * Callback fired when a Tab is selected.
-   *
-   * ```js
-   * function (
-   *   Any eventKey,
-   *   SyntheticEvent event?
-   * )
-   * ```
-   *
-   * @controllable activeKey
-   */
-  onSelect: PropTypes.func,
-
-  /**
-   * Wait until the first "enter" transition to mount tabs (add them to the DOM)
-   */
-  mountOnEnter: PropTypes.bool,
-
-  /**
-   * Unmount tabs (remove it from the DOM) when it is no longer visible
-   */
-  unmountOnExit: PropTypes.bool,
-};
-
-const defaultProps = {
-  variant: 'tabs',
-  mountOnEnter: false,
-  unmountOnExit: false,
-};
+  transition?: TransitionType | undefined;
+}
 
 function getDefaultActiveKey(children) {
   let defaultActiveKey;
@@ -107,31 +36,36 @@ function getDefaultActiveKey(children) {
 }
 
 function renderTab(child) {
-  const { title, eventKey, disabled, tabClassName, id } = child.props;
+  const { title, eventKey, disabled, tabClassName, tabAttrs, id } = child.props;
   if (title == null) {
     return null;
   }
 
   return (
-    <NavItem
-      as={NavLink}
-      eventKey={eventKey}
-      disabled={disabled}
-      id={id}
-      className={tabClassName}
-    >
-      {title}
+    <NavItem as="li" role="presentation">
+      <NavLink
+        as="button"
+        type="button"
+        eventKey={eventKey}
+        disabled={disabled}
+        id={id}
+        className={tabClassName}
+        {...tabAttrs}
+      >
+        {title}
+      </NavLink>
     </NavItem>
   );
 }
 
-const Tabs = (props: TabsProps) => {
+const Tabs: React.FC<TabsProps> = (props) => {
   const {
     id,
     onSelect,
     transition,
-    mountOnEnter,
-    unmountOnExit,
+    mountOnEnter = false,
+    unmountOnExit = false,
+    variant = 'tabs',
     children,
     activeKey = getDefaultActiveKey(children),
     ...controlledProps
@@ -140,15 +74,21 @@ const Tabs = (props: TabsProps) => {
   });
 
   return (
-    <TabContainer
+    <BaseTabs
       id={id}
       activeKey={activeKey}
       onSelect={onSelect}
-      transition={transition}
+      transition={getTabTransitionComponent(transition)}
       mountOnEnter={mountOnEnter}
       unmountOnExit={unmountOnExit}
     >
-      <Nav {...controlledProps} role="tablist" as="nav">
+      <Nav
+        id={id}
+        {...controlledProps}
+        role="tablist"
+        as="ul"
+        variant={variant}
+      >
         {map(children, renderTab)}
       </Nav>
 
@@ -159,16 +99,15 @@ const Tabs = (props: TabsProps) => {
           delete childProps.title;
           delete childProps.disabled;
           delete childProps.tabClassName;
+          delete childProps.tabAttrs;
 
           return <TabPane {...childProps} />;
         })}
       </TabContent>
-    </TabContainer>
+    </BaseTabs>
   );
 };
 
-Tabs.propTypes = propTypes as any;
-Tabs.defaultProps = defaultProps as any;
 Tabs.displayName = 'Tabs';
 
 export default Tabs;

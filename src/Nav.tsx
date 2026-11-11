@@ -1,92 +1,57 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-
-import all from 'prop-types-extra/lib/all';
-import React, { useContext } from 'react';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useContext } from 'react';
 import { useUncontrolled } from 'uncontrollable';
+import BaseNav from '@restart/ui/Nav';
+import { DynamicRefForwardingComponent, EventKey } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import NavbarContext from './NavbarContext.js';
+import CardHeaderContext from './CardHeaderContext.js';
+import NavItem from './NavItem.js';
+import NavLink from './NavLink.js';
+import type { BaseNavProps, LiteralUnion } from './types.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import NavbarContext from './NavbarContext';
-import CardContext from './CardContext';
-import AbstractNav from './AbstractNav';
-import NavItem from './NavItem';
-import NavLink from './NavLink';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-  SelectCallback,
-} from './helpers';
-import { EventKey } from './types';
+export interface NavProps extends BaseNavProps {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface NavProps extends BsPrefixPropsWithChildren {
-  navbarBsPrefix?: string;
-  cardHeaderBsPrefix?: string;
-  variant?: 'tabs' | 'pills';
-  activeKey?: EventKey;
-  defaultActiveKey?: EventKey;
-  fill?: boolean;
-  justify?: boolean;
-  onSelect?: SelectCallback;
-  role?: string;
-  navbar?: boolean;
-  onKeyDown?: React.KeyboardEventHandler<this>;
-}
-
-type Nav = BsPrefixRefForwardingComponent<'div', NavProps> & {
-  Item: typeof NavItem;
-  Link: typeof NavLink;
-};
-
-const propTypes = {
   /**
    * @default 'nav'
    */
-  bsPrefix: PropTypes.string,
-
-  /** @private */
-  navbarBsPrefix: PropTypes.string,
-  /** @private */
-  cardHeaderBsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
 
   /**
    * The visual variant of the nav items.
-   *
-   * @type {('tabs'|'pills')}
    */
-  variant: PropTypes.string,
+  variant?: LiteralUnion<'tabs' | 'pills' | 'underline', string> | undefined;
 
   /**
-   * Marks the NavItem with a matching `eventKey` (or `href` if present) as active.
-   *
-   * @type {string}
+   * The default active key that is selected on start.
    */
-  activeKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  defaultActiveKey?: EventKey | undefined;
 
   /**
    * Have all `NavItem`s proportionately fill all available width.
    */
-  fill: PropTypes.bool,
+  fill?: boolean | undefined;
 
   /**
    * Have all `NavItem`s evenly fill all available width.
-   *
-   * @type {boolean}
    */
-  justify: all(PropTypes.bool, ({ justify, navbar }) =>
-    justify && navbar ? Error('justify navbar `Nav`s are not supported') : null,
-  ),
+  justify?: boolean | undefined;
 
   /**
-   * A callback fired when a NavItem is selected.
-   *
-   * ```js
-   * function (
-   *  Any eventKey,
-   *  SyntheticEvent event?
-   * )
-   * ```
+   * Apply styling an alignment for use in a Navbar. This prop will be set
+   * automatically when the Nav is used inside a Navbar.
    */
-  onSelect: PropTypes.func,
+  navbar?: boolean | undefined;
+
+  /**
+   * Enable vertical scrolling within the toggleable contents of a collapsed Navbar.
+   */
+  navbarScroll?: boolean | undefined;
 
   /**
    * ARIA role for the Nav, in the context of a TabContainer, the default will
@@ -96,35 +61,22 @@ const propTypes = {
    * the ARIA authoring practices for tabs:
    * https://www.w3.org/TR/2013/WD-wai-aria-practices-20130307/#tabpanel
    */
-  role: PropTypes.string,
+  role?: string | undefined;
+}
 
-  /**
-   * Apply styling an alignment for use in a Navbar. This prop will be set
-   * automatically when the Nav is used inside a Navbar.
-   */
-  navbar: PropTypes.bool,
-
-  as: PropTypes.elementType,
-
-  /** @private */
-  onKeyDown: PropTypes.func,
-};
-
-const defaultProps = {
-  justify: false,
-  fill: false,
-};
-
-const Nav: Nav = (React.forwardRef((uncontrolledProps: NavProps, ref) => {
+const Nav: DynamicRefForwardingComponent<'div', NavProps> = React.forwardRef<
+  HTMLElement,
+  NavProps
+>((uncontrolledProps, ref) => {
   const {
     as = 'div',
     bsPrefix: initialBsPrefix,
     variant,
-    fill,
-    justify,
+    fill = false,
+    justify = false,
     navbar,
+    navbarScroll,
     className,
-    children,
     activeKey,
     ...props
   } = useUncontrolled(uncontrolledProps, { activeKey: 'onSelect' });
@@ -136,40 +88,37 @@ const Nav: Nav = (React.forwardRef((uncontrolledProps: NavProps, ref) => {
   let isNavbar = false;
 
   const navbarContext = useContext(NavbarContext);
-  const cardContext = useContext(CardContext);
+  const cardHeaderContext = useContext(CardHeaderContext);
 
   if (navbarContext) {
     navbarBsPrefix = navbarContext.bsPrefix;
     isNavbar = navbar == null ? true : navbar;
-  } else if (cardContext) {
-    ({ cardHeaderBsPrefix } = cardContext);
+  } else if (cardHeaderContext) {
+    ({ cardHeaderBsPrefix } = cardHeaderContext);
   }
 
   return (
-    <AbstractNav
+    <BaseNav
       as={as}
       ref={ref}
       activeKey={activeKey}
-      className={classNames(className, {
+      className={clsx(className, {
         [bsPrefix]: !isNavbar,
         [`${navbarBsPrefix}-nav`]: isNavbar,
+        [`${navbarBsPrefix}-nav-scroll`]: isNavbar && navbarScroll,
         [`${cardHeaderBsPrefix}-${variant}`]: !!cardHeaderBsPrefix,
         [`${bsPrefix}-${variant}`]: !!variant,
         [`${bsPrefix}-fill`]: fill,
         [`${bsPrefix}-justified`]: justify,
       })}
       {...props}
-    >
-      {children}
-    </AbstractNav>
+    />
   );
-}) as unknown) as Nav;
+});
 
 Nav.displayName = 'Nav';
-Nav.propTypes = propTypes;
-Nav.defaultProps = defaultProps;
 
-Nav.Item = NavItem;
-Nav.Link = NavLink;
-
-export default Nav;
+export default Object.assign(Nav, {
+  Item: NavItem,
+  Link: NavLink,
+});

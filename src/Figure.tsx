@@ -1,17 +1,35 @@
-import createWithBsPrefix from './createWithBsPrefix';
-import { BsPrefixRefForwardingComponent } from './helpers';
-import FigureImage from './FigureImage';
-import FigureCaption from './FigureCaption';
+import * as React from 'react';
+import clsx from 'clsx';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import FigureImage from './FigureImage.js';
+import FigureCaption from './FigureCaption.js';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-type Figure = BsPrefixRefForwardingComponent<'figure'> & {
-  Image: typeof FigureImage;
-  Caption: typeof FigureCaption;
-};
+export interface FigureProps extends React.AnchorHTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-const Figure: Figure = (createWithBsPrefix('figure', {
-  Component: 'figure',
-}) as unknown) as Figure;
+  /**
+   * @default 'figure'
+   */
+  bsPrefix?: string | undefined;
+}
 
-Figure.Image = FigureImage;
-Figure.Caption = FigureCaption;
-export default Figure;
+const Figure: DynamicRefForwardingComponent<'figure', FigureProps> =
+  React.forwardRef<HTMLElement, FigureProps>(
+    ({ className, bsPrefix, as: Component = 'figure', ...props }, ref) => {
+      bsPrefix = useBootstrapPrefix(bsPrefix, 'figure');
+      return (
+        <Component ref={ref} className={clsx(className, bsPrefix)} {...props} />
+      );
+    },
+  );
+
+Figure.displayName = 'Figure';
+
+export default Object.assign(Figure, {
+  Image: FigureImage,
+  Caption: FigureCaption,
+});

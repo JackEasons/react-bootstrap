@@ -1,6 +1,6 @@
-
-
 lib/
+cjs/
+dist/
 coverage/
 www/.cache/
 www/public/
@@ -11,8 +11,6 @@ www/public/
 logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Runtime data
 pids
@@ -60,9 +58,6 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
-.yarn-integrity
-
 # dotenv environment variables file
 .env
 .env.test
@@ -93,3 +88,6 @@ typings/
 
 # Generated types
 /types
+
+.yalc
+yalc.lock

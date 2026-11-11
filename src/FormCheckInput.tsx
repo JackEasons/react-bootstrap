@@ -1,88 +1,64 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useContext } from 'react';
-import FormContext from './FormContext';
-import { useBootstrapPrefix } from './ThemeProvider';
-import { BsPrefixProps, BsPrefixRefForwardingComponent } from './helpers';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useContext } from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import FormContext from './FormContext.js';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
 type FormCheckInputType = 'checkbox' | 'radio';
 
-export interface FormCheckInputProps extends BsPrefixProps {
-  id?: string;
-  bsCustomPrefix?: string;
-  type?: FormCheckInputType;
-  isStatic?: boolean;
-  isValid?: boolean;
-  isInvalid?: boolean;
-}
+export interface FormCheckInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-type FormCheckInput = BsPrefixRefForwardingComponent<
-  'input',
-  FormCheckInputProps
->;
-
-const propTypes = {
   /**
    * @default 'form-check-input'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
 
   /**
-   * A seperate bsPrefix used for custom controls
-   *
-   * @default 'custom-control'
+   * A HTML id attribute, necessary for proper form accessibility.
    */
-  bsCustomPrefix: PropTypes.string,
+  id?: string | undefined;
 
   /**
-   * The underlying HTML element to use when rendering the FormCheckInput.
-   *
-   * @type {('input'|elementType)}
+   * The type of checkable.
    */
-  as: PropTypes.elementType,
-
-  /** A HTML id attribute, necessary for proper form accessibility. */
-  id: PropTypes.string,
-
-  /** The type of checkable. */
-  type: PropTypes.oneOf(['radio', 'checkbox']).isRequired,
+  type?: FormCheckInputType | undefined;
 
   /**
-   * A convenience prop shortcut for adding `position-static` to the input, for
-   * correct styling when used without an FormCheckLabel
+   * Manually style the input as valid
    */
-  isStatic: PropTypes.bool,
+  isValid?: boolean | undefined;
 
-  /** Manually style the input as valid */
-  isValid: PropTypes.bool,
+  /**
+   * Manually style the input as invalid
+   */
+  isInvalid?: boolean | undefined;
+}
 
-  /** Manually style the input as invalid */
-  isInvalid: PropTypes.bool,
-};
-
-const FormCheckInput: FormCheckInput = React.forwardRef(
+const FormCheckInput: DynamicRefForwardingComponent<
+  'input',
+  FormCheckInputProps
+> = React.forwardRef<HTMLInputElement, FormCheckInputProps>(
   (
     {
       id,
       bsPrefix,
-      bsCustomPrefix,
       className,
       type = 'checkbox',
       isValid = false,
       isInvalid = false,
-      isStatic,
       // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
       as: Component = 'input',
       ...props
-    }: FormCheckInputProps,
+    },
     ref,
   ) => {
-    const { controlId, custom } = useContext(FormContext);
-    const [prefix, defaultPrefix] = custom
-      ? [bsCustomPrefix, 'custom-control-input']
-      : [bsPrefix, 'form-check-input'];
-
-    bsPrefix = useBootstrapPrefix(prefix, defaultPrefix);
+    const { controlId } = useContext(FormContext);
+    bsPrefix = useBootstrapPrefix(bsPrefix, 'form-check-input');
 
     return (
       <Component
@@ -90,12 +66,11 @@ const FormCheckInput: FormCheckInput = React.forwardRef(
         ref={ref}
         type={type}
         id={id || controlId}
-        className={classNames(
+        className={clsx(
           className,
           bsPrefix,
           isValid && 'is-valid',
           isInvalid && 'is-invalid',
-          isStatic && 'position-static',
         )}
       />
     );
@@ -103,6 +78,5 @@ const FormCheckInput: FormCheckInput = React.forwardRef(
 );
 
 FormCheckInput.displayName = 'FormCheckInput';
-FormCheckInput.propTypes = propTypes;
 
 export default FormCheckInput;

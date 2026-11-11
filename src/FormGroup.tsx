@@ -1,75 +1,41 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useMemo } from 'react';
+import * as React from 'react';
+import { useMemo } from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import FormContext from './FormContext.js';
 
-import FormContext from './FormContext';
-import { useBootstrapPrefix } from './ThemeProvider';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
-
-export interface FormGroupProps extends BsPrefixPropsWithChildren {
-  controlId?: string;
-}
-
-type FormGroup = BsPrefixRefForwardingComponent<'div', FormGroupProps>;
-
-const propTypes = {
+export interface FormGroupProps extends React.HTMLAttributes<HTMLElement> {
   /**
-   * @default 'form-group'
+   * Element used to render the component.
    */
-  bsPrefix: PropTypes.string,
-
-  as: PropTypes.elementType,
+  as?: React.ElementType | undefined;
 
   /**
    * Sets `id` on `<FormControl>` and `htmlFor` on `<FormGroup.Label>`.
    */
-  controlId: PropTypes.string,
+  controlId?: string | undefined;
+}
 
-  /**
-   * The FormGroup `ref` will be forwarded to the underlying element.
-   * Unless the FormGroup is rendered `as` a composite component,
-   * it will be a DOM node, when resolved.
-   *
-   * @type {ReactRef}
-   * @alias ref
-   */
-  _ref: PropTypes.any,
-};
+const FormGroup: DynamicRefForwardingComponent<'div', FormGroupProps> =
+  React.forwardRef(
+    (
+      {
+        controlId,
+        // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+        as: Component = 'div',
+        ...props
+      },
+      ref,
+    ) => {
+      const context = useMemo(() => ({ controlId }), [controlId]);
 
-const FormGroup: FormGroup = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      className,
-      children,
-      controlId,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'div',
-      ...props
+      return (
+        <FormContext.Provider value={context}>
+          <Component {...props} ref={ref} />
+        </FormContext.Provider>
+      );
     },
-    ref,
-  ) => {
-    bsPrefix = useBootstrapPrefix(bsPrefix, 'form-group');
-    const context = useMemo(() => ({ controlId }), [controlId]);
-
-    return (
-      <FormContext.Provider value={context}>
-        <Component
-          {...props}
-          ref={ref}
-          className={classNames(className, bsPrefix)}
-        >
-          {children}
-        </Component>
-      </FormContext.Provider>
-    );
-  },
-);
+  );
 
 FormGroup.displayName = 'FormGroup';
-FormGroup.propTypes = propTypes;
 
 export default FormGroup;

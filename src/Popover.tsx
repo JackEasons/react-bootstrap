@@ -1,125 +1,119 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
-import isRequiredForA11y from 'prop-types-extra/lib/isRequiredForA11y';
-import { useBootstrapPrefix } from './ThemeProvider';
-import PopoverTitle from './PopoverTitle';
-import PopoverContent from './PopoverContent';
-import { ArrowProps, Placement } from './Overlay';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+import clsx from 'clsx';
+import * as React from 'react';
+import { OverlayArrowProps } from '@restart/ui/Overlay';
+import { useBootstrapPrefix, useIsRTL } from './ThemeProvider.js';
+import PopoverHeader from './PopoverHeader.js';
+import PopoverBody from './PopoverBody.js';
+import type { Placement, PopperRef } from './types.js';
+import { getOverlayDirection } from './helpers.js';
+import getInitialPopperStyles from './getInitialPopperStyles.js';
 
-export interface PopoverProps
-  extends React.ComponentPropsWithoutRef<'div'>,
-    BsPrefixPropsWithChildren {
-  id: string;
-  placement?: Placement;
-  title?: string;
-  arrowProps?: ArrowProps;
-  content?: boolean;
-  popper?: any;
-  show?: boolean;
-}
-
-type Popover = BsPrefixRefForwardingComponent<'div', PopoverProps> & {
-  Title: typeof PopoverTitle;
-  Content: typeof PopoverContent;
-};
-
-const propTypes = {
+export interface PopoverProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * @default 'popover'
    */
-  bsPrefix: PropTypes.string,
-
-  /**
-   * An html id attribute, necessary for accessibility
-   * @type {string|number}
-   * @required
-   */
-  id: isRequiredForA11y(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  ),
+  bsPrefix?: string | undefined;
 
   /**
    * Sets the direction the Popover is positioned towards.
    *
    * > This is generally provided by the `Overlay` component positioning the popover
+   *
+   * @type {Placement | undefined}
    */
-  placement: PropTypes.oneOf(['auto', 'top', 'bottom', 'left', 'right']),
+  placement?: Placement | undefined;
 
   /**
    * An Overlay injected set of props for positioning the popover arrow.
    *
    * > This is generally provided by the `Overlay` component positioning the popover
    */
-  arrowProps: PropTypes.shape({
-    ref: PropTypes.any,
-    style: PropTypes.object,
-  }),
+  arrowProps?: Partial<OverlayArrowProps> | undefined;
 
   /**
-   * When this prop is set, it creates a Popover with a Popover.Content inside
+   * When this prop is set, it creates a Popover with a Popover.Body inside
    * passing the children directly to it
    */
-  content: PropTypes.bool,
+  body?: boolean | undefined;
 
-  /** @private */
-  popper: PropTypes.object,
+  /**
+   * @private
+   * @internal
+   */
+  popper?: PopperRef | undefined;
 
-  /** @private */
-  show: PropTypes.bool,
-};
+  /**
+   * @private
+   * @internal
+   */
+  show?: boolean | undefined;
 
-const defaultProps = {
-  placement: 'right',
-};
+  /**
+   * Whether or not Popper has done its initial measurement and positioning.
+   *
+   * @private
+   * @internal
+   */
+  hasDoneInitialMeasure?: boolean | undefined;
+}
 
-const Popover: Popover = (React.forwardRef<HTMLDivElement, PopoverProps>(
+const Popover = React.forwardRef<HTMLDivElement, PopoverProps>(
   (
     {
       bsPrefix,
-      placement,
+      placement = 'right',
       className,
       style,
       children,
-      content,
+      body,
       arrowProps,
-      popper: _,
-      show: _1,
+      hasDoneInitialMeasure,
+      popper,
+      show,
       ...props
-    }: PopoverProps,
+    },
     ref,
   ) => {
     const decoratedBsPrefix = useBootstrapPrefix(bsPrefix, 'popover');
+    const isRTL = useIsRTL();
     const [primaryPlacement] = placement?.split('-') || [];
+    const bsDirection = getOverlayDirection(primaryPlacement, isRTL);
+
+    let computedStyle = style;
+    if (show && !hasDoneInitialMeasure) {
+      computedStyle = {
+        ...style,
+        ...getInitialPopperStyles(popper?.strategy),
+      };
+    }
 
     return (
       <div
         ref={ref}
         role="tooltip"
-        style={style}
+        style={computedStyle}
         x-placement={primaryPlacement}
-        className={classNames(
+        className={clsx(
           className,
           decoratedBsPrefix,
-          primaryPlacement && `bs-popover-${primaryPlacement}`,
+          primaryPlacement && `bs-popover-${bsDirection}`,
         )}
         {...props}
       >
-        <div className="arrow" {...arrowProps} />
-        {content ? <PopoverContent>{children}</PopoverContent> : children}
+        <div className="popover-arrow" {...arrowProps} />
+        {body ? <PopoverBody>{children}</PopoverBody> : children}
       </div>
     );
   },
-) as unknown) as Popover;
+);
 
-Popover.propTypes = propTypes;
-Popover.defaultProps = defaultProps as any;
+Popover.displayName = 'Popover';
 
-Popover.Title = PopoverTitle;
-Popover.Content = PopoverContent;
+export default Object.assign(Popover, {
+  Header: PopoverHeader,
+  Body: PopoverBody,
 
-export default Popover;
+  // Default popover offset.
+  // https://github.com/twbs/bootstrap/blob/5c32767e0e0dbac2d934bcdee03719a65d3f1187/js/src/popover.js#L28
+  POPPER_OFFSET: [0, 8] as const,
+});

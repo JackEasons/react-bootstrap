@@ -1,97 +1,68 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import * as React from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+export interface ButtonGroupProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface ButtonGroupProps extends BsPrefixPropsWithChildren {
-  role?: string;
-  size?: 'sm' | 'lg';
-  toggle?: boolean;
-  vertical?: boolean;
-}
-
-type ButtonGroup = BsPrefixRefForwardingComponent<'div', ButtonGroupProps>;
-
-const propTypes = {
   /**
    * @default 'btn-group'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
 
   /**
    * Sets the size for all Buttons in the group.
-   *
-   * @type ('sm'|'lg')
    */
-  size: PropTypes.string,
-
-  /** Make the set of Buttons appear vertically stacked. */
-  vertical: PropTypes.bool,
+  size?: 'sm' | 'lg' | undefined;
 
   /**
-   * Display as a button toggle group.
-   *
-   * (Generally it's better to use `ToggleButtonGroup` directly)
+   * Make the set of Buttons appear vertically stacked.
    */
-  toggle: PropTypes.bool,
+  vertical?: boolean | undefined;
 
   /**
    * An ARIA role describing the button group. Usually the default
    * "group" role is fine. An `aria-label` or `aria-labelledby`
    * prop is also recommended.
    */
-  role: PropTypes.string,
+  role?: string | undefined;
+}
 
-  as: PropTypes.elementType,
-};
+const ButtonGroup: DynamicRefForwardingComponent<'div', ButtonGroupProps> =
+  React.forwardRef<HTMLElement, ButtonGroupProps>(
+    (
+      {
+        bsPrefix,
+        size,
+        vertical = false,
+        className,
+        role = 'group',
+        // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+        as: Component = 'div',
+        ...rest
+      },
+      ref,
+    ) => {
+      const prefix = useBootstrapPrefix(bsPrefix, 'btn-group');
+      let baseClass = prefix;
 
-const defaultProps = {
-  vertical: false,
-  toggle: false,
-  role: 'group',
-};
+      if (vertical) baseClass = `${prefix}-vertical`;
 
-const ButtonGroup: ButtonGroup = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      size,
-      toggle,
-      vertical,
-      className,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'div',
-      ...rest
-    }: ButtonGroupProps,
-    ref,
-  ) => {
-    const prefix = useBootstrapPrefix(bsPrefix, 'btn-group');
-    let baseClass = prefix;
-
-    if (vertical) baseClass = `${prefix}-vertical`;
-
-    return (
-      <Component
-        {...rest}
-        ref={ref}
-        className={classNames(
-          className,
-          baseClass,
-          size && `${prefix}-${size}`,
-          toggle && `${prefix}-toggle`,
-        )}
-      />
-    );
-  },
-);
+      return (
+        <Component
+          {...rest}
+          ref={ref}
+          role={role}
+          className={clsx(className, baseClass, size && `${prefix}-${size}`)}
+        />
+      );
+    },
+  );
 
 ButtonGroup.displayName = 'ButtonGroup';
-ButtonGroup.propTypes = propTypes;
-ButtonGroup.defaultProps = defaultProps;
 
 export default ButtonGroup;

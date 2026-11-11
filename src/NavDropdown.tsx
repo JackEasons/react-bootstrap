@@ -1,122 +1,121 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
-
-import { useBootstrapPrefix } from './ThemeProvider';
-import Dropdown, { DropdownProps } from './Dropdown';
-import NavLink from './NavLink';
-import { BsPrefixRefForwardingComponent } from './helpers';
+import clsx from 'clsx';
+import * as React from 'react';
+import { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import Dropdown from './Dropdown.js';
+import type { DropdownMenuVariant } from './DropdownMenu.js';
+import NavLink from './NavLink.js';
+import type { BsDropdownProps } from './types.js';
 
 export interface NavDropdownProps
-  extends DropdownProps,
-    Omit<React.HTMLAttributes<HTMLElement>, 'onSelect' | 'title'> {
-  id: string;
-  title: React.ReactNode;
-  disabled?: boolean;
-  active?: boolean;
-  menuRole?: string;
-  renderMenuOnMount?: boolean;
-  rootCloseEvent?: 'click' | 'mousedown';
-}
-
-type NavDropdown = BsPrefixRefForwardingComponent<'div', NavDropdownProps> & {
-  Item: typeof Dropdown.Item;
-  ItemText: typeof Dropdown.ItemText;
-  Divider: typeof Dropdown.Divider;
-  Header: typeof Dropdown.Header;
-};
-
-const propTypes = {
+  extends
+    BsDropdownProps,
+    Omit<
+      React.HTMLAttributes<HTMLElement>,
+      'onSelect' | 'children' | 'onToggle' | 'title'
+    > {
   /**
    * An html id attribute for the Toggle button, necessary for assistive technologies, such as screen readers.
-   * @type {string|number}
-   * @required
    */
-  id: PropTypes.any,
+  id?: string | undefined;
 
-  /** An `onClick` handler passed to the Toggle component */
-  onClick: PropTypes.func,
+  /**
+   * The content of the non-toggle Button.
+   */
+  title: React.ReactNode;
 
-  /** The content of the non-toggle Button.  */
-  title: PropTypes.node.isRequired,
+  /**
+   * Disables the toggle NavLink
+   */
+  disabled?: boolean | undefined;
 
-  /** Disables the toggle NavLink  */
-  disabled: PropTypes.bool,
+  /**
+   * Style the toggle NavLink as active
+   */
+  active?: boolean | undefined;
 
-  /** Style the toggle NavLink as active  */
-  active: PropTypes.bool,
+  /**
+   * An ARIA accessible role applied to the Menu component.
+   */
+  menuRole?: string | undefined;
 
-  /** An ARIA accessible role applied to the Menu component. When set to 'menu', The dropdown */
-  menuRole: PropTypes.string,
-
-  /** Whether to render the dropdown menu in the DOM before the first time it is shown */
-  renderMenuOnMount: PropTypes.bool,
+  /**
+   * Whether to render the dropdown menu in the DOM before the first time it is shown
+   */
+  renderMenuOnMount?: boolean | undefined;
 
   /**
    *  Which event when fired outside the component will cause it to be closed.
    *
    * _see [DropdownMenu](#menu-props) for more details_
    */
-  rootCloseEvent: PropTypes.string,
+  rootCloseEvent?: 'click' | 'mousedown' | undefined;
 
-  /** @ignore */
-  bsPrefix: PropTypes.string,
-};
+  /**
+   * Menu color variant.
+   *
+   * Omitting this will use the default light color.
+   */
+  menuVariant?: DropdownMenuVariant | undefined;
+}
 
-const NavDropdown: NavDropdown = (React.forwardRef(
-  (
-    {
-      id,
-      title,
-      children,
-      bsPrefix,
-      className,
-      rootCloseEvent,
-      menuRole,
-      disabled,
-      active,
-      renderMenuOnMount,
-      ...props
-    }: NavDropdownProps,
-    ref,
-  ) => {
-    /* NavItem has no additional logic, it's purely presentational. Can set nav item class here to support "as" */
-    const navItemPrefix = useBootstrapPrefix(undefined, 'nav-item');
+const NavDropdown: DynamicRefForwardingComponent<'div', NavDropdownProps> =
+  React.forwardRef(
+    (
+      {
+        id,
+        title,
+        children,
+        bsPrefix,
+        className,
+        rootCloseEvent,
+        menuRole,
+        disabled,
+        active,
+        renderMenuOnMount,
+        menuVariant,
+        ...props
+      }: NavDropdownProps,
+      ref,
+    ) => {
+      /* NavItem has no additional logic, it's purely presentational. Can set nav item class here to support "as" */
+      const navItemPrefix = useBootstrapPrefix(undefined, 'nav-item');
 
-    return (
-      <Dropdown
-        ref={ref}
-        {...props}
-        className={classNames(className, navItemPrefix)}
-      >
-        <Dropdown.Toggle
-          id={id}
-          eventKey={null}
-          active={active}
-          disabled={disabled}
-          childBsPrefix={bsPrefix}
-          as={NavLink}
+      return (
+        <Dropdown
+          ref={ref}
+          {...props}
+          className={clsx(className, navItemPrefix)}
         >
-          {title}
-        </Dropdown.Toggle>
+          <Dropdown.Toggle
+            id={id}
+            eventKey={null}
+            active={active}
+            disabled={disabled}
+            childBsPrefix={bsPrefix}
+            as={NavLink}
+          >
+            {title}
+          </Dropdown.Toggle>
 
-        <Dropdown.Menu
-          role={menuRole}
-          renderOnMount={renderMenuOnMount}
-          rootCloseEvent={rootCloseEvent}
-        >
-          {children}
-        </Dropdown.Menu>
-      </Dropdown>
-    );
-  },
-) as unknown) as NavDropdown;
+          <Dropdown.Menu
+            role={menuRole}
+            renderOnMount={renderMenuOnMount}
+            rootCloseEvent={rootCloseEvent}
+            variant={menuVariant}
+          >
+            {children}
+          </Dropdown.Menu>
+        </Dropdown>
+      );
+    },
+  );
 
 NavDropdown.displayName = 'NavDropdown';
-NavDropdown.propTypes = propTypes;
-NavDropdown.Item = Dropdown.Item;
-NavDropdown.ItemText = Dropdown.ItemText;
-NavDropdown.Divider = Dropdown.Divider;
-NavDropdown.Header = Dropdown.Header;
 
-export default NavDropdown;
+export default Object.assign(NavDropdown, {
+  Item: Dropdown.Item,
+  ItemText: Dropdown.ItemText,
+  Divider: Dropdown.Divider,
+  Header: Dropdown.Header,
+});

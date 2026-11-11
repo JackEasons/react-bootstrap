@@ -1,206 +1,139 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import all from 'prop-types-extra/lib/all';
-import React, { useContext } from 'react';
-import warning from 'warning';
-import Feedback from './Feedback';
-import FormContext from './FormContext';
-import { useBootstrapPrefix } from './ThemeProvider';
-import { BsPrefixProps, BsPrefixRefForwardingComponent } from './helpers';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useContext } from 'react';
+import { warn } from './internal/warning.js';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import Feedback from './Feedback.js';
+import FormContext from './FormContext.js';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-type FormControlElement =
-  | HTMLInputElement
-  | HTMLSelectElement
-  | HTMLTextAreaElement;
+type FormControlElement = HTMLInputElement | HTMLTextAreaElement;
 
-export interface FormControlProps extends BsPrefixProps {
-  bsCustomPrefix?: string;
-  htmlSize?: number;
-  size?: 'sm' | 'lg';
-  plaintext?: boolean;
-  readOnly?: boolean;
-  disabled?: boolean;
-  value?: string | string[] | number;
-  onChange?: React.ChangeEventHandler<FormControlElement>;
-  custom?: boolean;
-  type?: string;
-  id?: string;
-  isValid?: boolean;
-  isInvalid?: boolean;
-}
-
-const propTypes = {
+export interface FormControlProps extends Omit<
+  React.InputHTMLAttributes<FormControlElement>,
+  'size'
+> {
   /**
-   * @default {'form-control'}
+   * Element used to render the component.
    */
-  bsPrefix: PropTypes.string,
+  as?: React.ElementType | undefined;
 
   /**
-   * A seperate bsPrefix used for custom controls
-   *
-   * @default 'custom'
+   * @default 'form-control'
    */
-  bsCustomPrefix: PropTypes.string,
-
-  /**
-   * The FormControl `ref` will be forwarded to the underlying input element,
-   * which means unless `as` is a composite component,
-   * it will be a DOM node, when resolved.
-   *
-   * @type {ReactRef}
-   * @alias ref
-   */
-  _ref: PropTypes.any,
-  /**
-   * Input size variants
-   *
-   * @type {('sm'|'lg')}
-   */
-  size: PropTypes.string,
+  bsPrefix?: string | undefined;
 
   /**
    * The size attribute of the underlying HTML element.
    * Specifies the visible width in characters if `as` is `'input'`.
-   * Specifies the number of visible options if `as` is `'select'`.
    */
-  htmlSize: PropTypes.number,
+  htmlSize?: number | undefined;
 
   /**
-   * The underlying HTML element to use when rendering the FormControl.
-   *
-   * @type {('input'|'textarea'|'select'|elementType)}
+   * Input size variants
    */
-  as: PropTypes.elementType,
+  size?: 'sm' | 'lg' | undefined;
 
   /**
    * Render the input as plain text. Generally used along side `readOnly`.
    */
-  plaintext: PropTypes.bool,
+  plaintext?: boolean | undefined;
 
-  /** Make the control readonly */
-  readOnly: PropTypes.bool,
+  /**
+   * Make the control readonly
+   */
+  readOnly?: boolean | undefined;
 
-  /** Make the control disabled */
-  disabled: PropTypes.bool,
+  /**
+   * Make the control disabled
+   */
+  disabled?: boolean | undefined;
 
   /**
    * The `value` attribute of underlying input
    *
    * @controllable onChange
    * */
-  value: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.arrayOf(PropTypes.string),
-    PropTypes.number,
-  ]),
-
-  /** A callback fired when the `value` prop changes */
-  onChange: PropTypes.func,
+  value?: string | string[] | number | undefined;
 
   /**
-   * Use Bootstrap's custom form elements to replace the browser defaults
-   * @type boolean
+   * A callback fired when the `value` prop changes
    */
-  custom: all(PropTypes.bool, ({ as, type, custom }) =>
-    custom === true && type !== 'range' && as !== 'select'
-      ? Error(
-          '`custom` can only be set to `true` when the input type is `range`, or  `select`',
-        )
-      : null,
-  ),
+  onChange?: React.ChangeEventHandler<FormControlElement> | undefined;
 
   /**
    * The HTML input `type`, which is only relevant if `as` is `'input'` (the default).
    */
-  type: PropTypes.string,
+  type?: string | undefined;
 
   /**
    * Uses `controlId` from `<FormGroup>` if not explicitly specified.
    */
-  id: PropTypes.string,
+  id?: string | undefined;
 
-  /** Add "valid" validation styles to the control */
-  isValid: PropTypes.bool,
+  /**
+   * Add "valid" validation styles to the control
+   */
+  isValid?: boolean | undefined;
 
-  /** Add "invalid" validation styles to the control and accompanying label */
-  isInvalid: PropTypes.bool,
-};
+  /**
+   * Add "invalid" validation styles to the control and accompanying label
+   */
+  isInvalid?: boolean | undefined;
+}
 
-const FormControl: BsPrefixRefForwardingComponent<
-  'input',
-  FormControlProps
-> = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      bsCustomPrefix,
-      type,
-      size,
-      htmlSize,
-      id,
-      className,
-      isValid = false,
-      isInvalid = false,
-      plaintext,
-      readOnly,
-      custom,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'input',
-      ...props
-    }: FormControlProps,
-    ref,
-  ) => {
-    const { controlId } = useContext(FormContext);
-    const [prefix, defaultPrefix] = custom
-      ? [bsCustomPrefix, 'custom']
-      : [bsPrefix, 'form-control'];
+const FormControl: DynamicRefForwardingComponent<'input', FormControlProps> =
+  React.forwardRef<FormControlElement, FormControlProps>(
+    (
+      {
+        bsPrefix,
+        type,
+        size,
+        htmlSize,
+        id,
+        className,
+        isValid = false,
+        isInvalid = false,
+        plaintext,
+        readOnly,
+        // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+        as: Component = 'input',
+        ...props
+      },
+      ref,
+    ) => {
+      const { controlId } = useContext(FormContext);
 
-    bsPrefix = useBootstrapPrefix(prefix, defaultPrefix);
+      bsPrefix = useBootstrapPrefix(bsPrefix, 'form-control');
 
-    let classes;
-    if (plaintext) {
-      classes = { [`${bsPrefix}-plaintext`]: true };
-    } else if (type === 'file') {
-      classes = { [`${bsPrefix}-file`]: true };
-    } else if (type === 'range') {
-      classes = { [`${bsPrefix}-range`]: true };
-    } else if (Component === 'select' && custom) {
-      classes = {
-        [`${bsPrefix}-select`]: true,
-        [`${bsPrefix}-select-${size}`]: size,
-      };
-    } else {
-      classes = {
-        [bsPrefix]: true,
-        [`${bsPrefix}-${size}`]: size,
-      };
-    }
+      warn(
+        controlId == null || !id,
+        '`controlId` is ignored on `<FormControl>` when `id` is specified.',
+      );
 
-    warning(
-      controlId == null || !id,
-      '`controlId` is ignored on `<FormControl>` when `id` is specified.',
-    );
-
-    return (
-      <Component
-        {...props}
-        type={type}
-        size={htmlSize}
-        ref={ref}
-        readOnly={readOnly}
-        id={id || controlId}
-        className={classNames(
-          className,
-          classes,
-          isValid && `is-valid`,
-          isInvalid && `is-invalid`,
-        )}
-      />
-    );
-  },
-);
+      return (
+        <Component
+          {...props}
+          type={type}
+          size={htmlSize}
+          ref={ref}
+          readOnly={readOnly}
+          id={id || controlId}
+          className={clsx(
+            className,
+            plaintext ? `${bsPrefix}-plaintext` : bsPrefix,
+            size && `${bsPrefix}-${size}`,
+            type === 'color' && `${bsPrefix}-color`,
+            isValid && 'is-valid',
+            isInvalid && 'is-invalid',
+          )}
+        />
+      );
+    },
+  );
 
 FormControl.displayName = 'FormControl';
-FormControl.propTypes = propTypes;
 
-export default Object.assign(FormControl, { Feedback });
+export default Object.assign(FormControl, {
+  Feedback,
+});

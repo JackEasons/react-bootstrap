@@ -1,100 +1,75 @@
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import React from 'react';
+import clsx from 'clsx';
+import * as React from 'react';
+import { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import type { Variant } from './types.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import { BsPrefixPropsWithChildren } from './helpers';
-import { Variant } from './types';
+export interface SpinnerProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface SpinnerProps
-  extends React.HTMLAttributes<HTMLElement>,
-    BsPrefixPropsWithChildren {
-  animation: 'border' | 'grow';
-  role?: string;
-  size?: 'sm';
-  variant?: Variant;
-}
-
-const propTypes = {
   /**
    * @default 'spinner'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
+
+  /**
+   * Changes the animation style of the spinner.
+   */
+  animation?: 'border' | 'grow' | undefined;
+
+  /**
+   * Component size variations.
+   */
+  size?: 'sm' | undefined;
 
   /**
    * The visual color style of the spinner
    *
-   * @type {('primary'|'secondary'|'success'|'danger'|'warning'|'info'|'light'|'dark')}
+   * @type {'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'dark' | 'light' | undefined}
    */
-  variant: PropTypes.string,
+  variant?: Variant | undefined;
 
   /**
-   * Changes the animation style of the spinner.
-   *
-   * @type {('border'|'grow')}
-   * @default true
+   * An ARIA accessible role applied to the spinner component. This should generally be set to 'status'
    */
-  animation: PropTypes.oneOf(['border', 'grow']).isRequired,
+  role?: string | undefined;
+}
 
-  /**
-   * Component size variations.
-   *
-   * @type {('sm')}
-   */
-  size: PropTypes.string,
+const Spinner: DynamicRefForwardingComponent<'div', SpinnerProps> =
+  React.forwardRef<HTMLElement, SpinnerProps>(
+    (
+      {
+        bsPrefix,
+        variant,
+        animation = 'border',
+        size,
+        // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+        as: Component = 'div',
+        className,
+        ...props
+      },
+      ref,
+    ) => {
+      bsPrefix = useBootstrapPrefix(bsPrefix, 'spinner');
+      const bsSpinnerPrefix = `${bsPrefix}-${animation}`;
+      return (
+        <Component
+          ref={ref}
+          {...props}
+          className={clsx(
+            className,
+            bsSpinnerPrefix,
+            size && `${bsSpinnerPrefix}-${size}`,
+            variant && `text-${variant}`,
+          )}
+        />
+      );
+    },
+  );
 
-  /**
-   * This component may be used to wrap child elements or components.
-   */
-  children: PropTypes.element,
-
-  /**
-   * An ARIA accessible role applied to the Menu component. This should generally be set to 'status'
-   */
-  role: PropTypes.string,
-
-  /**
-   * @default div
-   */
-  as: PropTypes.elementType,
-};
-
-const Spinner = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      variant,
-      animation,
-      size,
-      children,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'div',
-      className,
-      ...props
-    }: SpinnerProps,
-    ref,
-  ) => {
-    bsPrefix = useBootstrapPrefix(bsPrefix, 'spinner');
-    const bsSpinnerPrefix = `${bsPrefix}-${animation}`;
-
-    return (
-      <Component
-        ref={ref}
-        {...props}
-        className={classNames(
-          className,
-          bsSpinnerPrefix,
-          size && `${bsSpinnerPrefix}-${size}`,
-          variant && `text-${variant}`,
-        )}
-      >
-        {children}
-      </Component>
-    );
-  },
-);
-
-Spinner.propTypes = propTypes as any;
 Spinner.displayName = 'Spinner';
 
 export default Spinner;

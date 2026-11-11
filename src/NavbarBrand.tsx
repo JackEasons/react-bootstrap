@@ -1,48 +1,38 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import * as React from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import { BsPrefixProps, BsPrefixRefForwardingComponent } from './helpers';
+export interface NavbarBrandProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface NavbarBrandProps extends BsPrefixProps {
-  href?: string;
-}
-
-type NavbarBrand = BsPrefixRefForwardingComponent<'a', NavbarBrandProps>;
-
-const propTypes = {
-  /** @default 'navbar' */
-  bsPrefix: PropTypes.string,
+  /**
+   * @default 'navbar-brand'
+   */
+  bsPrefix?: string | undefined;
 
   /**
    * An href, when provided the Brand will render as an `<a>` element (unless `as` is provided).
    */
-  href: PropTypes.string,
+  href?: string | undefined;
+}
 
-  /**
-   * Set a custom element for this component.
-   */
-  as: PropTypes.elementType,
-};
+const NavbarBrand: DynamicRefForwardingComponent<'a', NavbarBrandProps> =
+  React.forwardRef<HTMLElement, NavbarBrandProps>(
+    ({ bsPrefix, className, as, ...props }, ref) => {
+      bsPrefix = useBootstrapPrefix(bsPrefix, 'navbar-brand');
 
-const NavbarBrand: NavbarBrand = React.forwardRef(
-  ({ bsPrefix, className, as, ...props }: NavbarBrandProps, ref) => {
-    bsPrefix = useBootstrapPrefix(bsPrefix, 'navbar-brand');
+      const Component = as || (props.href ? 'a' : 'span');
 
-    const Component = as || (props.href ? 'a' : 'span');
-
-    return (
-      <Component
-        {...props}
-        ref={ref}
-        className={classNames(className, bsPrefix)}
-      />
-    );
-  },
-);
+      return (
+        <Component {...props} ref={ref} className={clsx(className, bsPrefix)} />
+      );
+    },
+  );
 
 NavbarBrand.displayName = 'NavbarBrand';
-NavbarBrand.propTypes = propTypes;
 
 export default NavbarBrand;

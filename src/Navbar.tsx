@@ -1,64 +1,58 @@
-import classNames from 'classnames';
-import React, { useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
-
-import { useUncontrolled } from 'uncontrollable';
-
-import createWithBsPrefix from './createWithBsPrefix';
-import NavbarBrand from './NavbarBrand';
-import NavbarCollapse from './NavbarCollapse';
-import NavbarToggle from './NavbarToggle';
-import { useBootstrapPrefix } from './ThemeProvider';
-import NavbarContext, { NavbarContextType } from './NavbarContext';
-import SelectableContext from './SelectableContext';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useCallback, useMemo } from 'react';
+import SelectableContext from '@restart/ui/SelectableContext';
 import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
+  DynamicRefForwardingComponent,
   SelectCallback,
-} from './helpers';
+} from '@restart/ui/types';
+import { useUncontrolled } from 'uncontrollable';
+import NavbarBrand from './NavbarBrand.js';
+import NavbarCollapse from './NavbarCollapse.js';
+import NavbarToggle from './NavbarToggle.js';
+import NavbarOffcanvas from './NavbarOffcanvas.js';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import NavbarContext, { type NavbarContextType } from './NavbarContext.js';
+import NavbarText from './NavbarText.js';
+import type { LiteralUnion } from './types.js';
 
-const NavbarText = createWithBsPrefix('navbar-text', {
-  Component: 'span',
-});
-
-export interface NavbarProps extends BsPrefixPropsWithChildren {
-  variant?: 'light' | 'dark';
-  expand?: boolean | 'sm' | 'md' | 'lg' | 'xl';
-  bg?: string;
-  fixed?: 'top' | 'bottom';
-  sticky?: 'top';
-  onToggle?: (expanded: boolean) => void;
-  onSelect?: SelectCallback;
-  collapseOnSelect?: boolean;
-  expanded?: boolean;
-  role?: string;
-}
-
-type Navbar = BsPrefixRefForwardingComponent<'nav', NavbarProps> & {
-  Brand: typeof NavbarBrand;
-  Collapse: typeof NavbarCollapse;
-  Text: typeof NavbarText;
-  Toggle: typeof NavbarToggle;
-};
-
-const propTypes = {
-  /** @default 'navbar' */
-  bsPrefix: PropTypes.string,
+export interface NavbarProps extends Omit<
+  React.HTMLAttributes<HTMLElement>,
+  'onSelect' | 'onToggle'
+> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
   /**
-   * The general visual variant a the Navbar.
+   * @default 'navbar'
+   */
+  bsPrefix?: string | undefined;
+
+  /**
+   * The general visual variant of the Navbar.
    * Use in combination with the `bg` prop, `background-color` utilities,
    * or your own background styles.
-   *
-   * @type {('light'|'dark')}
    */
-  variant: PropTypes.string,
+  variant?: LiteralUnion<'light' | 'dark', string> | undefined;
 
   /**
    * The breakpoint, below which, the Navbar will collapse.
    * When `true` the Navbar will always be expanded regardless of screen size.
    */
-  expand: PropTypes.oneOf([true, 'sm', 'md', 'lg', 'xl']).isRequired,
+  expand?:
+    | boolean
+    | LiteralUnion<'sm' | 'md' | 'lg' | 'xl' | 'xxl', string>
+    | undefined;
+
+  /**
+   * Default expanded state of the Navbar.
+   */
+  defaultExpand?:
+    | boolean
+    | LiteralUnion<'sm' | 'md' | 'lg' | 'xl' | 'xxl', string>
+    | undefined;
 
   /**
    * A convenience prop for adding `bg-*` utility classes since they are so commonly used here.
@@ -66,35 +60,29 @@ const propTypes = {
    *
    * Pairs nicely with the `variant` prop.
    */
-  bg: PropTypes.string,
+  bg?: string | undefined;
 
   /**
    * Create a fixed navbar along the top or bottom of the screen, that scrolls with the
    * page. A convenience prop for the `fixed-*` positioning classes.
    */
-  fixed: PropTypes.oneOf(['top', 'bottom']),
+  fixed?: 'top' | 'bottom' | undefined;
 
   /**
-   * Position the navbar at the top of the viewport, but only after scrolling past it.
-   * A convenience prop for the `sticky-top` positioning class.
-   *
-   *  __Not supported in <= IE11 and other older browsers without a polyfill__
+   * Position the navbar at the top or bottom of the viewport, but only after scrolling past it.
+   * A convenience prop for the `sticky-*` positioning classes.
    */
-  sticky: PropTypes.oneOf(['top']),
-
-  /**
-   * Set a custom element for this component.
-   */
-  as: PropTypes.elementType,
+  sticky?: 'top' | 'bottom' | undefined;
 
   /**
    * A callback fired when the `<Navbar>` body collapses or expands. Fired when
    * a `<Navbar.Toggle>` is clicked and called with the new `expanded`
    * boolean value.
    *
+   * @type {((expanded: boolean) => void) | undefined}
    * @controllable expanded
    */
-  onToggle: PropTypes.func,
+  onToggle?: ((expanded: boolean) => void) | undefined;
 
   /**
    * A callback fired when a descendant of a child `<Nav>` is selected. Should
@@ -117,24 +105,27 @@ const propTypes = {
    * ensure that you are setting `expanded` to false and not *toggling* between
    * true and false.
    */
-  onSelect: PropTypes.func,
+  onSelect?: SelectCallback | undefined;
 
   /**
    * Toggles `expanded` to `false` after the onSelect event of a descendant of a
    * child `<Nav>` fires. Does nothing if no `<Nav>` or `<Nav>` descendants exist.
    *
+   * `<NavLink>` descendants of `<Nav>` will not trigger the `onSelect` event unless
+   * an `eventKey` or `href` prop is defined.
+   *
    * Manually controlling `expanded` via the onSelect callback is recommended instead,
    * for more complex operations that need to be executed after
    * the `select` event of `<Nav>` descendants.
    */
-  collapseOnSelect: PropTypes.bool,
+  collapseOnSelect?: boolean | undefined;
 
   /**
-   * Controls the visiblity of the navbar body
+   * Controls the visibility of the navbar body
    *
    * @controllable onToggle
    */
-  expanded: PropTypes.bool,
+  expanded?: boolean | undefined;
 
   /**
    * The ARIA role for the navbar, will default to 'navigation' for
@@ -142,98 +133,88 @@ const propTypes = {
    *
    * @default 'navigation'
    */
-  role: PropTypes.string,
-};
+  role?: string | undefined;
+}
 
-const defaultProps = {
-  expand: true,
-  variant: 'light' as const,
-  collapseOnSelect: false,
-};
+const Navbar: DynamicRefForwardingComponent<'nav', NavbarProps> =
+  React.forwardRef<HTMLElement, NavbarProps>((props, ref) => {
+    const {
+      bsPrefix: initialBsPrefix,
+      expand = true,
+      variant,
+      bg,
+      fixed,
+      sticky,
+      className,
+      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+      as: Component = 'nav',
+      expanded,
+      onToggle,
+      onSelect,
+      collapseOnSelect = false,
+      ...controlledProps
+    } = useUncontrolled(props, {
+      expanded: 'onToggle',
+    });
 
-const Navbar: Navbar = (React.forwardRef((props: NavbarProps, ref) => {
-  const {
-    bsPrefix: initialBsPrefix,
-    expand,
-    variant,
-    bg,
-    fixed,
-    sticky,
-    className,
-    children,
-    // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-    as: Component = 'nav',
-    expanded,
-    onToggle,
-    onSelect,
-    collapseOnSelect,
-    ...controlledProps
-  } = useUncontrolled(props, {
-    expanded: 'onToggle',
+    const bsPrefix = useBootstrapPrefix(initialBsPrefix, 'navbar');
+
+    const handleCollapse = useCallback<SelectCallback>(
+      (...args) => {
+        onSelect?.(...args);
+        if (collapseOnSelect && expanded) {
+          onToggle?.(false);
+        }
+      },
+      [onSelect, collapseOnSelect, expanded, onToggle],
+    );
+
+    // will result in some false positives but that seems better
+    // than false negatives. strict `undefined` check allows explicit
+    // "nulling" of the role if the user really doesn't want one
+    if (controlledProps.role === undefined && Component !== 'nav') {
+      controlledProps.role = 'navigation';
+    }
+    let expandClass = `${bsPrefix}-expand`;
+    if (typeof expand === 'string') expandClass = `${expandClass}-${expand}`;
+
+    const navbarContext = useMemo<NavbarContextType>(
+      () => ({
+        onToggle: () => onToggle?.(!expanded),
+        bsPrefix,
+        expanded: !!expanded,
+        expand,
+      }),
+      [bsPrefix, expanded, expand, onToggle],
+    );
+
+    return (
+      <NavbarContext.Provider value={navbarContext}>
+        <SelectableContext.Provider value={handleCollapse}>
+          <Component
+            ref={ref}
+            {...controlledProps}
+            className={clsx(
+              className,
+              bsPrefix,
+              expand && expandClass,
+              variant && `${bsPrefix}-${variant}`,
+              bg && `bg-${bg}`,
+              sticky && `sticky-${sticky}`,
+              fixed && `fixed-${fixed}`,
+            )}
+          />
+        </SelectableContext.Provider>
+      </NavbarContext.Provider>
+    );
   });
 
-  const bsPrefix = useBootstrapPrefix(initialBsPrefix, 'navbar');
-
-  const handleCollapse = useCallback<SelectCallback>(
-    (...args) => {
-      if (onSelect) onSelect(...args);
-      if (collapseOnSelect && expanded) {
-        if (onToggle) {
-          onToggle(false);
-        }
-      }
-    },
-    [onSelect, collapseOnSelect, expanded, onToggle],
-  );
-
-  // will result in some false positives but that seems better
-  // than false negatives. strict `undefined` check allows explicit
-  // "nulling" of the role if the user really doesn't want one
-  if (controlledProps.role === undefined && Component !== 'nav') {
-    controlledProps.role = 'navigation';
-  }
-  let expandClass = `${bsPrefix}-expand`;
-  if (typeof expand === 'string') expandClass = `${expandClass}-${expand}`;
-
-  const navbarContext = useMemo<NavbarContextType>(
-    () => ({
-      onToggle: () => onToggle && onToggle(!expanded),
-      bsPrefix,
-      expanded: !!expanded,
-    }),
-    [bsPrefix, expanded, onToggle],
-  );
-
-  return (
-    <NavbarContext.Provider value={navbarContext}>
-      <SelectableContext.Provider value={handleCollapse}>
-        <Component
-          ref={ref}
-          {...controlledProps}
-          className={classNames(
-            className,
-            bsPrefix,
-            expand && expandClass,
-            variant && `${bsPrefix}-${variant}`,
-            bg && `bg-${bg}`,
-            sticky && `sticky-${sticky}`,
-            fixed && `fixed-${fixed}`,
-          )}
-        >
-          {children}
-        </Component>
-      </SelectableContext.Provider>
-    </NavbarContext.Provider>
-  );
-}) as unknown) as Navbar;
-
-Navbar.propTypes = propTypes;
-Navbar.defaultProps = defaultProps;
 Navbar.displayName = 'Navbar';
 
-Navbar.Brand = NavbarBrand;
-Navbar.Toggle = NavbarToggle;
-Navbar.Collapse = NavbarCollapse;
-Navbar.Text = NavbarText;
-
-export default Navbar;
+export default Object.assign(Navbar, {
+  Brand: NavbarBrand,
+  Collapse: NavbarCollapse,
+  Offcanvas: NavbarOffcanvas,
+  Text: NavbarText,
+  Toggle: NavbarToggle,
+});

@@ -1,6 +1,28 @@
-import React from 'react';
+import * as React from 'react';
 
-const context = React.createContext<string | null>(null);
+export type AccordionEventKey = string | string[] | null;
+
+export declare type AccordionSelectCallback = (
+  eventKey: AccordionEventKey,
+  e: React.SyntheticEvent<unknown>,
+) => void;
+
+export interface AccordionContextValue {
+  activeEventKey?: AccordionEventKey | undefined;
+  onSelect?: AccordionSelectCallback | undefined;
+  alwaysOpen?: boolean | undefined;
+}
+
+export function isAccordionItemSelected(
+  activeEventKey: AccordionEventKey | undefined,
+  eventKey: string,
+): boolean {
+  return Array.isArray(activeEventKey)
+    ? activeEventKey.includes(eventKey)
+    : activeEventKey === eventKey;
+}
+
+const context = React.createContext<AccordionContextValue>({});
 context.displayName = 'AccordionContext';
 
 export default context;

@@ -1,94 +1,66 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-
-import Button, { ButtonType } from './Button';
-import ButtonGroup from './ButtonGroup';
-import Dropdown, { DropdownProps } from './Dropdown';
-import { alignPropType, AlignType } from './DropdownMenu';
-import { PropsFromToggle } from './DropdownToggle';
-import { BsPrefixPropsWithChildren } from './helpers';
+import * as React from 'react';
+import Button from './Button.js';
+import ButtonGroup from './ButtonGroup.js';
+import Dropdown from './Dropdown.js';
+import type { PropsFromToggle } from './DropdownToggle.js';
+import { BsDropdownProps } from './types.js';
 
 export interface SplitButtonProps
-  extends DropdownProps,
-    Omit<React.HTMLAttributes<HTMLElement>, 'onSelect' | 'title' | 'id'>,
+  extends
+    BsDropdownProps,
     PropsFromToggle,
-    BsPrefixPropsWithChildren {
-  id: string | number;
-  menuAlign?: AlignType;
-  menuRole?: string;
-  renderMenuOnMount?: boolean;
-  rootCloseEvent?: 'click' | 'mousedown';
-  target?: string;
-  title: React.ReactNode;
-  toggleLabel?: string;
-  type?: ButtonType;
-}
-
-const propTypes = {
+    Omit<
+      React.HTMLAttributes<HTMLElement>,
+      'onSelect' | 'children' | 'onToggle' | 'title'
+    > {
   /**
-   * An html id attribute for the Toggle button, necessary for assistive technologies, such as screen readers.
-   * @type {string|number}
-   * @required
+   * An ARIA accessible role applied to the Menu component.
    */
-  id: PropTypes.any,
+  menuRole?: string | undefined;
 
   /**
-   * Accessible label for the toggle; the value of `title` if not specified.
+   * Whether to render the dropdown menu in the DOM before the first time it is shown
    */
-  toggleLabel: PropTypes.string,
-
-  /** An `href` passed to the non-toggle Button */
-  href: PropTypes.string,
-
-  /** An anchor `target` passed to the non-toggle Button */
-  target: PropTypes.string,
-
-  /** An `onClick` handler passed to the non-toggle Button */
-  onClick: PropTypes.func,
-
-  /** The content of the non-toggle Button.  */
-  title: PropTypes.node.isRequired,
-
-  /** A `type` passed to the non-toggle Button */
-  type: PropTypes.string,
-
-  /** Disables both Buttons  */
-  disabled: PropTypes.bool,
-
-  /**
-   * Aligns the dropdown menu responsively.
-   *
-   * _see [DropdownMenu](#dropdown-menu-props) for more details_
-   *
-   * @type {"left"|"right"|{ sm: "left"|"right" }|{ md: "left"|"right" }|{ lg: "left"|"right" }|{ xl: "left"|"right"} }
-   */
-  menuAlign: alignPropType,
-
-  /** An ARIA accessible role applied to the Menu component. When set to 'menu', The dropdown */
-  menuRole: PropTypes.string,
-
-  /** Whether to render the dropdown menu in the DOM before the first time it is shown */
-  renderMenuOnMount: PropTypes.bool,
+  renderMenuOnMount?: boolean | undefined;
 
   /**
    *  Which event when fired outside the component will cause it to be closed.
    *
    * _see [DropdownMenu](#dropdown-menu-props) for more details_
    */
-  rootCloseEvent: PropTypes.string,
+  rootCloseEvent?: 'click' | 'mousedown' | undefined;
 
-  /** @ignore */
-  bsPrefix: PropTypes.string,
-  /** @ignore */
-  variant: PropTypes.string,
-  /** @ignore */
-  size: PropTypes.string,
-};
+  /**
+   * An `href` passed to the non-toggle Button
+   */
+  href?: string | undefined;
 
-const defaultProps = {
-  toggleLabel: 'Toggle dropdown',
-  type: 'button',
-};
+  /**
+   * An anchor `target` passed to the non-toggle Button
+   */
+  target?: string | undefined;
+
+  /**
+   * The content of the non-toggle Button.
+   */
+  title: React.ReactNode;
+
+  /**
+   * Accessible label for the toggle; the value of `title` if not specified.
+   */
+  toggleLabel?: string | undefined;
+
+  /*
+   * A `type` passed to the non-toggle Button
+   */
+  type?: 'submit' | 'reset' | 'button' | undefined;
+
+  /**
+   * Allow Dropdown to flip in case of an overlapping on the reference element. For more information refer to
+   * Popper.js's flip [docs](https://popper.js.org/docs/v2/modifiers/flip/).
+   */
+  flip?: boolean | undefined;
+}
 
 /**
  * A convenience component for simple or general use split button dropdowns. Renders a
@@ -108,16 +80,16 @@ const SplitButton = React.forwardRef<HTMLElement, SplitButtonProps>(
       size,
       variant,
       title,
-      type,
-      toggleLabel,
+      type = 'button',
+      toggleLabel = 'Toggle dropdown',
       children,
       onClick,
       href,
       target,
-      menuAlign,
       menuRole,
       renderMenuOnMount,
       rootCloseEvent,
+      flip,
       ...props
     },
     ref,
@@ -137,20 +109,20 @@ const SplitButton = React.forwardRef<HTMLElement, SplitButtonProps>(
       </Button>
       <Dropdown.Toggle
         split
-        id={id ? id.toString() : undefined}
+        id={id}
         size={size}
         variant={variant}
         disabled={props.disabled}
         childBsPrefix={bsPrefix}
       >
-        <span className="sr-only">{toggleLabel}</span>
+        <span className="visually-hidden">{toggleLabel}</span>
       </Dropdown.Toggle>
 
       <Dropdown.Menu
-        align={menuAlign}
         role={menuRole}
         renderOnMount={renderMenuOnMount}
         rootCloseEvent={rootCloseEvent}
+        flip={flip}
       >
         {children}
       </Dropdown.Menu>
@@ -158,8 +130,6 @@ const SplitButton = React.forwardRef<HTMLElement, SplitButtonProps>(
   ),
 );
 
-SplitButton.propTypes = propTypes as any;
-SplitButton.defaultProps = defaultProps;
 SplitButton.displayName = 'SplitButton';
 
 export default SplitButton;

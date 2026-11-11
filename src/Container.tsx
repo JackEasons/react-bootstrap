@@ -1,71 +1,54 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import * as React from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import type { LiteralUnion } from './types.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+export interface ContainerProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface ContainerProps extends BsPrefixPropsWithChildren {
-  fluid?: boolean | 'sm' | 'md' | 'lg' | 'xl';
-}
-
-type Container = BsPrefixRefForwardingComponent<'div', ContainerProps>;
-
-const containerSizes = PropTypes.oneOfType([
-  PropTypes.bool,
-  PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
-]);
-
-const propTypes = {
   /**
    * @default 'container'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
 
   /**
    * Allow the Container to fill all of its available horizontal space.
-   * @type {(true|"sm"|"md"|"lg"|"xl")}
    */
-  fluid: containerSizes,
-  /**
-   * You can use a custom element for this component
-   */
-  as: PropTypes.elementType,
-};
+  fluid?:
+    | boolean
+    | LiteralUnion<'sm' | 'md' | 'lg' | 'xl' | 'xxl', string>
+    | undefined;
+}
 
-const defaultProps = {
-  fluid: false,
-};
-
-const Container: Container = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      fluid,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'div',
-      className,
-      ...props
-    }: ContainerProps,
-    ref,
-  ) => {
-    const prefix = useBootstrapPrefix(bsPrefix, 'container');
-    const suffix = typeof fluid === 'string' ? `-${fluid}` : '-fluid';
-    return (
-      <Component
-        ref={ref}
-        {...props}
-        className={classNames(className, fluid ? `${prefix}${suffix}` : prefix)}
-      />
-    );
-  },
-);
+const Container: DynamicRefForwardingComponent<'div', ContainerProps> =
+  React.forwardRef<HTMLElement, ContainerProps>(
+    (
+      {
+        bsPrefix,
+        fluid = false,
+        // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+        as: Component = 'div',
+        className,
+        ...props
+      },
+      ref,
+    ) => {
+      const prefix = useBootstrapPrefix(bsPrefix, 'container');
+      const suffix = typeof fluid === 'string' ? `-${fluid}` : '-fluid';
+      return (
+        <Component
+          ref={ref}
+          {...props}
+          className={clsx(className, fluid ? `${prefix}${suffix}` : prefix)}
+        />
+      );
+    },
+  );
 
 Container.displayName = 'Container';
-Container.propTypes = propTypes;
-Container.defaultProps = defaultProps;
 
 export default Container;

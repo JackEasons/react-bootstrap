@@ -1,203 +1,144 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useContext } from 'react';
-import BaseDropdown from 'react-overlays/Dropdown';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useContext, useMemo } from 'react';
+import BaseDropdown, { ToggleMetadata } from '@restart/ui/Dropdown';
 import { useUncontrolled } from 'uncontrollable';
 import useEventCallback from '@restart/hooks/useEventCallback';
-import DropdownItem from './DropdownItem';
-import DropdownMenu from './DropdownMenu';
-import DropdownToggle from './DropdownToggle';
-import SelectableContext from './SelectableContext';
-import { useBootstrapPrefix } from './ThemeProvider';
-import createWithBsPrefix from './createWithBsPrefix';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-  SelectCallback,
-} from './helpers';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import DropdownContext from './DropdownContext.js';
+import DropdownDivider from './DropdownDivider.js';
+import DropdownHeader from './DropdownHeader.js';
+import DropdownItem from './DropdownItem.js';
+import DropdownItemText from './DropdownItemText.js';
+import DropdownMenu, { getDropdownMenuPlacement } from './DropdownMenu.js';
+import DropdownToggle from './DropdownToggle.js';
+import InputGroupContext from './InputGroupContext.js';
+import { useBootstrapPrefix, useIsRTL } from './ThemeProvider.js';
+import type { BsDropdownProps } from './types.js';
 
-const DropdownHeader = createWithBsPrefix('dropdown-header', {
-  defaultProps: { role: 'heading' },
-});
-const DropdownDivider = createWithBsPrefix('dropdown-divider', {
-  defaultProps: { role: 'separator' },
-});
-const DropdownItemText = createWithBsPrefix('dropdown-item-text', {
-  Component: 'span',
-});
+export interface DropdownProps
+  extends
+    BsDropdownProps,
+    Omit<
+      React.HTMLAttributes<HTMLElement>,
+      'onSelect' | 'children' | 'onToggle'
+    > {}
 
-export interface DropdownProps extends BsPrefixPropsWithChildren {
-  drop?: 'up' | 'left' | 'right' | 'down';
-  alignRight?: boolean;
-  show?: boolean;
-  flip?: boolean;
-  onToggle?: (
-    isOpen: boolean,
-    event: React.SyntheticEvent<Dropdown>,
-    metadata: { source: 'select' | 'click' | 'rootClose' | 'keydown' },
-  ) => void;
-  focusFirstItemOnShow?: boolean | 'keyboard';
-  onSelect?: SelectCallback;
-  navbar?: boolean;
-}
+const Dropdown: DynamicRefForwardingComponent<'div', DropdownProps> =
+  React.forwardRef<HTMLElement, DropdownProps>((pProps, ref) => {
+    const {
+      bsPrefix,
+      drop = 'down',
+      show,
+      className,
+      align = 'start',
+      onSelect,
+      onToggle,
+      focusFirstItemOnShow,
+      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+      as: Component = 'div',
+      navbar: _4,
+      autoClose = true,
+      ...props
+    } = useUncontrolled(pProps, { show: 'onToggle' });
 
-type Dropdown = BsPrefixRefForwardingComponent<'div', DropdownProps> & {
-  Toggle: typeof DropdownToggle;
-  Menu: typeof DropdownMenu;
-  Item: typeof DropdownItem;
-  ItemText: typeof DropdownItemText;
-  Divider: typeof DropdownDivider;
-  Header: typeof DropdownHeader;
-};
+    const isInputGroup = useContext(InputGroupContext);
+    const prefix = useBootstrapPrefix(bsPrefix, 'dropdown');
+    const isRTL = useIsRTL();
 
-const propTypes = {
-  /** @default 'dropdown' */
-  bsPrefix: PropTypes.string,
-  /**
-   * Determines the direction and location of the Menu in relation to it's Toggle.
-   */
-  drop: PropTypes.oneOf(['up', 'left', 'right', 'down']),
+    const isClosingPermitted = (source: string): boolean => {
+      // autoClose=false only permits close on button click
+      if (autoClose === false) return source === 'click';
 
-  as: PropTypes.elementType,
+      // autoClose=inside doesn't permit close on rootClose
+      if (autoClose === 'inside') return source !== 'rootClose';
 
-  /**
-   * Align the menu to the right side of the Dropdown toggle
-   */
-  alignRight: PropTypes.bool,
+      // autoClose=outside doesn't permit close on select
+      if (autoClose === 'outside') return source !== 'select';
 
-  /**
-   * Whether or not the Dropdown is visible.
-   *
-   * @controllable onToggle
-   */
-  show: PropTypes.bool,
+      return true;
+    };
 
-  /**
-   * Allow Dropdown to flip in case of an overlapping on the reference element. For more information refer to
-   * Popper.js's flip [docs](https://popper.js.org/docs/v2/modifiers/flip/).
-   *
-   */
-  flip: PropTypes.bool,
+    const handleToggle = useEventCallback(
+      (nextShow: boolean, meta: ToggleMetadata) => {
+        /** Checking if target of event is ToggleButton,
+         * if it is then nullify mousedown event
+         */
+        const isToggleButton = (
+          meta.originalEvent?.target as HTMLElement
+        )?.classList.contains('dropdown-toggle');
 
-  /**
-   * A callback fired when the Dropdown wishes to change visibility. Called with the requested
-   * `show` value, the DOM event, and the source that fired it: `'click'`,`'keydown'`,`'rootClose'`, or `'select'`.
-   *
-   * ```js
-   * function(
-   *   isOpen: boolean,
-   *   event: SyntheticEvent,
-   *   metadata: {
-   *     source: 'select' | 'click' | 'rootClose' | 'keydown'
-   *   }
-   * ): void
-   * ```
-   *
-   * @controllable show
-   */
-  onToggle: PropTypes.func,
+        if (isToggleButton && meta.source === 'mousedown') {
+          return;
+        }
 
-  /**
-   * A callback fired when a menu item is selected.
-   *
-   * ```js
-   * (eventKey: any, event: Object) => any
-   * ```
-   */
-  onSelect: PropTypes.func,
+        if (
+          meta.originalEvent!.currentTarget === document &&
+          (meta.source !== 'keydown' ||
+            (meta.originalEvent as any).key === 'Escape')
+        )
+          meta.source = 'rootClose';
 
-  /**
-   * Controls the focus behavior for when the Dropdown is opened. Set to
-   * `true` to always focus the first menu item, `keyboard` to focus only when
-   * navigating via the keyboard, or `false` to disable completely
-   *
-   * The Default behavior is `false` **unless** the Menu has a `role="menu"`
-   * where it will default to `keyboard` to match the recommended [ARIA Authoring practices](https://www.w3.org/TR/wai-aria-practices-1.1/#menubutton).
-   */
-  focusFirstItemOnShow: PropTypes.oneOf([false, true, 'keyboard']),
+        if (isClosingPermitted(meta.source!)) onToggle?.(nextShow, meta);
+      },
+    );
 
-  /** @private */
-  navbar: PropTypes.bool,
-};
+    const alignEnd = align === 'end';
+    const placement = getDropdownMenuPlacement(alignEnd, drop, isRTL);
 
-const defaultProps = {
-  navbar: false,
-};
+    const contextValue = useMemo(
+      () => ({
+        align,
+        drop,
+        isRTL,
+      }),
+      [align, drop, isRTL],
+    );
 
-const Dropdown: Dropdown = (React.forwardRef((pProps: DropdownProps, ref) => {
-  const {
-    bsPrefix,
-    drop,
-    show,
-    className,
-    alignRight,
-    onSelect,
-    onToggle,
-    focusFirstItemOnShow,
-    // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-    as: Component = 'div',
-    navbar: _4,
-    ...props
-  } = useUncontrolled(pProps, { show: 'onToggle' });
+    const directionClasses = {
+      down: prefix,
+      'down-centered': `${prefix}-center`,
+      up: 'dropup',
+      'up-centered': 'dropup-center dropup',
+      end: 'dropend',
+      start: 'dropstart',
+    };
 
-  const onSelectCtx = useContext(SelectableContext);
-  const prefix = useBootstrapPrefix(bsPrefix, 'dropdown');
-
-  const handleToggle = useEventCallback(
-    (nextShow, event, source = event.type) => {
-      if (
-        event.currentTarget === document &&
-        (source !== 'keydown' || event.key === 'Escape')
-      )
-        source = 'rootClose';
-      if (onToggle) {
-        onToggle(nextShow, event, { source });
-      }
-    },
-  );
-
-  const handleSelect = useEventCallback((key, event) => {
-    if (onSelectCtx) onSelectCtx(key, event);
-    if (onSelect) onSelect(key, event);
-    handleToggle(false, event, 'select');
+    return (
+      <DropdownContext.Provider value={contextValue}>
+        <BaseDropdown
+          placement={placement}
+          show={show}
+          onSelect={onSelect}
+          onToggle={handleToggle}
+          focusFirstItemOnShow={focusFirstItemOnShow}
+          itemSelector={`.${prefix}-item:not(.disabled):not(:disabled)`}
+        >
+          {isInputGroup ? (
+            props.children
+          ) : (
+            <Component
+              {...props}
+              ref={ref}
+              className={clsx(
+                className,
+                show && 'show',
+                directionClasses[drop!],
+              )}
+            />
+          )}
+        </BaseDropdown>
+      </DropdownContext.Provider>
+    );
   });
 
-  return (
-    <SelectableContext.Provider value={handleSelect}>
-      <BaseDropdown
-        drop={drop}
-        show={show}
-        alignEnd={alignRight}
-        onToggle={handleToggle}
-        focusFirstItemOnShow={focusFirstItemOnShow}
-        itemSelector={`.${prefix}-item:not(.disabled):not(:disabled)`}
-      >
-        <Component
-          {...props}
-          ref={ref}
-          className={classNames(
-            className,
-            show && 'show',
-            (!drop || drop === 'down') && prefix,
-            drop === 'up' && 'dropup',
-            drop === 'right' && 'dropright',
-            drop === 'left' && 'dropleft',
-          )}
-        />
-      </BaseDropdown>
-    </SelectableContext.Provider>
-  );
-}) as unknown) as Dropdown;
-
 Dropdown.displayName = 'Dropdown';
-Dropdown.propTypes = propTypes;
-Dropdown.defaultProps = defaultProps;
 
-Dropdown.Divider = DropdownDivider;
-Dropdown.Header = DropdownHeader;
-Dropdown.Item = DropdownItem;
-Dropdown.ItemText = DropdownItemText;
-Dropdown.Menu = DropdownMenu;
-Dropdown.Toggle = DropdownToggle;
-
-export default Dropdown;
+export default Object.assign(Dropdown, {
+  Toggle: DropdownToggle,
+  Menu: DropdownMenu,
+  Item: DropdownItem,
+  ItemText: DropdownItemText,
+  Divider: DropdownDivider,
+  Header: DropdownHeader,
+});

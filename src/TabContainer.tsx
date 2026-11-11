@@ -1,72 +1,30 @@
-import React, { useMemo } from 'react';
-import PropTypes, { Validator } from 'prop-types';
-import { useUncontrolled } from 'uncontrollable';
+import Tabs from '@restart/ui/Tabs';
+import type { EventKey, SelectCallback } from '@restart/ui/types';
+import getTabTransitionComponent from './getTabTransitionComponent.js';
+import type { TransitionType } from './helpers.js';
 
-import TabContext, { TabContextType } from './TabContext';
-import SelectableContext from './SelectableContext';
-import { SelectCallback, TransitionType } from './helpers';
-import { EventKey } from './types';
-
-export interface TabContainerProps extends React.PropsWithChildren<unknown> {
-  id?: string;
-  transition?: TransitionType;
-  mountOnEnter?: boolean;
-  unmountOnExit?: boolean;
-  generateChildId?: (eventKey: EventKey, type: 'tab' | 'pane') => string;
-  onSelect?: SelectCallback;
-  activeKey?: EventKey;
-  defaultActiveKey?: EventKey;
-}
-
-const validateId: Validator<string> = (props, ...args) => {
-  let error: Error | null = null;
-
-  if (!props.generateChildId) {
-    error = PropTypes.string(props, ...args);
-
-    if (!error && !props.id) {
-      error = new Error(
-        'In order to properly initialize Tabs in a way that is accessible ' +
-          'to assistive technologies (such as screen readers) an `id` or a ' +
-          '`generateChildId` prop to TabContainer is required',
-      );
-    }
-  }
-
-  return error;
-};
-
-/* eslint-disable react/no-unused-prop-types */
-const propTypes = {
+export interface TabContainerProps extends React.PropsWithChildren {
   /**
-   * HTML id attribute, required if no `generateChildId` prop
-   * is specified.
-   *
-   * @type {string}
+   * ID of the TabContainer.
    */
-  id: validateId,
+  id?: string | undefined;
 
   /**
    * Sets a default animation strategy for all children `<TabPane>`s.
    * Defaults to `<Fade>` animation; else, use `false` to disable, or a
    * custom react-transition-group `<Transition/>` component.
-   *
-   * @type {{Transition | false}}
-   * @default {Fade}
    */
-  transition: PropTypes.oneOfType([
-    PropTypes.oneOf([false]),
-    PropTypes.elementType,
-  ]),
+  transition?: TransitionType | undefined;
+
   /**
    * Wait until the first "enter" transition to mount tabs (add them to the DOM)
    */
-  mountOnEnter: PropTypes.bool,
+  mountOnEnter?: boolean | undefined;
 
   /**
    * Unmount tabs (remove it from the DOM) when they are no longer visible
    */
-  unmountOnExit: PropTypes.bool,
+  unmountOnExit?: boolean | undefined;
 
   /**
    * A function that takes an `eventKey` and `type` and returns a unique id for
@@ -77,73 +35,36 @@ const propTypes = {
    *
    * The `type` argument will either be `"tab"` or `"pane"`.
    *
+   * @type {((eventKey: EventKey, type: 'tab' | 'pane') => string) | undefined}
    * @defaultValue (eventKey, type) => `${props.id}-${type}-${eventKey}`
    */
-  generateChildId: PropTypes.func,
+  generateChildId?:
+    ((eventKey: EventKey, type: 'tab' | 'pane') => string) | undefined;
 
   /**
    * A callback fired when a tab is selected.
    *
    * @controllable activeKey
    */
-  onSelect: PropTypes.func,
+  onSelect?: SelectCallback | undefined;
 
   /**
    * The `eventKey` of the currently active tab.
    *
    * @controllable onSelect
    */
-  activeKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-};
+  activeKey?: EventKey | undefined;
 
-const TabContainer = (props: TabContainerProps) => {
-  const {
-    id,
-    generateChildId: generateCustomChildId,
-    onSelect,
-    activeKey,
-    transition,
-    mountOnEnter,
-    unmountOnExit,
-    children,
-  } = useUncontrolled(props, { activeKey: 'onSelect' });
+  /**
+   * Default value for `eventKey`.
+   */
+  defaultActiveKey?: EventKey | undefined;
+}
 
-  const generateChildId = useMemo(
-    () =>
-      generateCustomChildId ||
-      ((key: EventKey, type: string) => (id ? `${id}-${type}-${key}` : null)),
-    [id, generateCustomChildId],
-  );
+const TabContainer = ({ transition, ...props }: TabContainerProps) => (
+  <Tabs {...props} transition={getTabTransitionComponent(transition)} />
+);
 
-  const tabContext: TabContextType = useMemo(
-    () => ({
-      onSelect,
-      activeKey,
-      transition,
-      mountOnEnter: mountOnEnter || false,
-      unmountOnExit: unmountOnExit || false,
-      getControlledId: (key: EventKey) => generateChildId(key, 'tabpane'),
-      getControllerId: (key: EventKey) => generateChildId(key, 'tab'),
-    }),
-    [
-      onSelect,
-      activeKey,
-      transition,
-      mountOnEnter,
-      unmountOnExit,
-      generateChildId,
-    ],
-  );
-
-  return (
-    <TabContext.Provider value={tabContext}>
-      <SelectableContext.Provider value={onSelect || null}>
-        {children}
-      </SelectableContext.Provider>
-    </TabContext.Provider>
-  );
-};
-
-TabContainer.propTypes = propTypes;
+TabContainer.displayName = 'TabContainer';
 
 export default TabContainer;

@@ -1,47 +1,30 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
+import clsx from 'clsx';
+import { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+export interface TabContentProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-type TabContentProps = BsPrefixPropsWithChildren;
-type TabContent = BsPrefixRefForwardingComponent<'div', TabContentProps>;
-
-const propTypes = {
   /**
    * @default 'tab-content'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
+}
 
-  as: PropTypes.elementType,
-};
+const TabContent: DynamicRefForwardingComponent<'div', TabContentProps> =
+  React.forwardRef<HTMLElement, TabContentProps>(
+    ({ className, bsPrefix, as: Component = 'div', ...props }, ref) => {
+      bsPrefix = useBootstrapPrefix(bsPrefix, 'tab-content');
+      return (
+        <Component ref={ref} className={clsx(className, bsPrefix)} {...props} />
+      );
+    },
+  );
 
-const TabContent: TabContent = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'div',
-      className,
-      ...props
-    }: TabContentProps,
-    ref,
-  ) => {
-    const decoratedBsPrefix = useBootstrapPrefix(bsPrefix, 'tab-content');
-    return (
-      <Component
-        ref={ref}
-        {...props}
-        className={classNames(className, decoratedBsPrefix)}
-      />
-    );
-  },
-);
-
-TabContent.propTypes = propTypes;
+TabContent.displayName = 'TabContent';
 
 export default TabContent;

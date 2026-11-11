@@ -1,233 +1,144 @@
-import classNames from 'classnames';
-import React, { cloneElement } from 'react';
-import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import * as React from 'react';
+import { cloneElement } from 'react';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import { map } from './ElementChildren.js';
+import type { LiteralUnion } from './types.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
+export interface ProgressBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * @default 'progress'
+   */
+  bsPrefix?: string | undefined;
 
-import { map } from './ElementChildren';
-import { BsPrefixPropsWithChildren } from './helpers';
-
-export interface ProgressBarProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    BsPrefixPropsWithChildren {
-  min?: number;
-  now?: number;
-  max?: number;
-  label?: React.ReactNode;
-  srOnly?: boolean;
-  striped?: boolean;
-  animated?: boolean;
-  variant?: 'success' | 'danger' | 'warning' | 'info' | string;
-  isChild?: boolean;
-}
-
-const ROUND_PRECISION = 1000;
-
-/**
- * Validate that children, if any, are instances of `<ProgressBar>`.
- */
-function onlyProgressBar(props, propName, componentName): Error | null {
-  const children = props[propName];
-  if (!children) {
-    return null;
-  }
-
-  let error: Error | null = null;
-
-  React.Children.forEach(children, (child) => {
-    if (error) {
-      return;
-    }
-
-    /**
-     * Compare types in a way that works with libraries that patch and proxy
-     * components like react-hot-loader.
-     *
-     * see https://github.com/gaearon/react-hot-loader#checking-element-types
-     */
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const element = <ProgressBar />;
-    if (child.type === element.type) return;
-
-    const childType: any = child.type;
-    const childIdentifier = React.isValidElement(child)
-      ? childType.displayName || childType.name || childType
-      : child;
-    error = new Error(
-      `Children of ${componentName} can contain only ProgressBar ` +
-        `components. Found ${childIdentifier}.`,
-    );
-  });
-
-  return error;
-}
-
-const propTypes = {
   /**
    * Minimum value progress can begin from
    */
-  min: PropTypes.number,
+  min?: number | undefined;
 
   /**
    * Current value of progress
    */
-  now: PropTypes.number,
+  now?: number | undefined;
 
   /**
    * Maximum value progress can reach
    */
-  max: PropTypes.number,
+  max?: number | undefined;
 
   /**
    * Show label that represents visual percentage.
    * EG. 60%
    */
-  label: PropTypes.node,
+  label?: React.ReactNode | undefined;
 
   /**
    * Hide's the label visually.
    */
-  srOnly: PropTypes.bool,
+  visuallyHidden?: boolean | undefined;
 
   /**
    * Uses a gradient to create a striped effect.
    */
-  striped: PropTypes.bool,
+  striped?: boolean | undefined;
 
   /**
    * Animate's the stripes from right to left
    */
-  animated: PropTypes.bool,
-
-  /**
-   * @private
-   * @default 'progress-bar'
-   */
-  bsPrefix: PropTypes.string,
+  animated?: boolean | undefined;
 
   /**
    * Sets the background class of the progress bar.
    *
-   * @type ('success'|'danger'|'warning'|'info')
+   * @type {'success' | 'danger' | 'warning' | 'info' | string | undefined}
    */
-  variant: PropTypes.string,
-
-  /**
-   * Child elements (only allows elements of type <ProgressBar />)
-   */
-  children: onlyProgressBar,
+  variant?:
+    LiteralUnion<'success' | 'danger' | 'warning' | 'info', string> | undefined;
 
   /**
    * @private
+   * @internal
    */
-  isChild: PropTypes.bool,
-};
+  isChild?: boolean | undefined;
+}
 
-const defaultProps = {
-  min: 0,
-  max: 100,
-  animated: false,
-  isChild: false,
-  srOnly: false,
-  striped: false,
-};
+const ROUND_PRECISION = 1000;
 
-function getPercentage(now, min, max) {
+function getPercentage(now: number, min: number, max: number) {
   const percentage = ((now - min) / (max - min)) * 100;
   return Math.round(percentage * ROUND_PRECISION) / ROUND_PRECISION;
 }
 
-function renderProgressBar(
-  {
-    min,
-    now,
-    max,
-    label,
-    srOnly,
-    striped,
-    animated,
-    className,
-    style,
-    variant,
-    bsPrefix,
-    ...props
-  }: ProgressBarProps,
-  ref,
-) {
-  return (
-    <div
-      ref={ref}
-      {...props}
-      role="progressbar"
-      className={classNames(className, `${bsPrefix}-bar`, {
-        [`bg-${variant}`]: variant,
-        [`${bsPrefix}-bar-animated`]: animated,
-        [`${bsPrefix}-bar-striped`]: animated || striped,
-      })}
-      style={{ width: `${getPercentage(now, min, max)}%`, ...style }}
-      aria-valuenow={now}
-      aria-valuemin={min}
-      aria-valuemax={max}
-    >
-      {srOnly ? <span className="sr-only">{label}</span> : label}
-    </div>
-  );
-}
-
-renderProgressBar.propTypes = propTypes;
-
 const ProgressBar = React.forwardRef<HTMLDivElement, ProgressBarProps>(
-  ({ isChild, ...props }: ProgressBarProps, ref) => {
-    props.bsPrefix = useBootstrapPrefix(props.bsPrefix, 'progress');
-
-    if (isChild) {
-      return renderProgressBar(props, ref);
-    }
-
-    const {
-      min,
-      now,
-      max,
-      label,
-      srOnly,
-      striped,
-      animated,
+  (
+    {
       bsPrefix,
+      isChild = false,
+      children,
+      min = 0,
+      now = 0,
+      max = 100,
+      label,
+      animated = false,
+      visuallyHidden = false,
+      striped = false,
       variant,
       className,
-      children,
-      ...wrapperProps
-    } = props;
+      style,
+      ...props
+    }: ProgressBarProps,
+    ref,
+  ) => {
+    bsPrefix = useBootstrapPrefix(bsPrefix, 'progress');
+
+    if (children) {
+      return (
+        <div
+          ref={ref}
+          {...props}
+          style={style}
+          className={clsx(className, `${bsPrefix}-stacked`)}
+        >
+          {map(children, (child) => cloneElement(child, { isChild: true }))}
+        </div>
+      );
+    }
+
+    const width = `${getPercentage(now, min, max)}%`;
 
     return (
       <div
         ref={ref}
-        {...wrapperProps}
-        className={classNames(className, bsPrefix)}
+        {...props}
+        role="progressbar"
+        className={clsx(className, bsPrefix)}
+        style={{ width: isChild ? width : undefined, ...style }}
+        aria-valuenow={now}
+        aria-valuemin={min}
+        aria-valuemax={max}
       >
-        {children
-          ? map(children, (child) => cloneElement(child, { isChild: true }))
-          : renderProgressBar(
-              {
-                min,
-                now,
-                max,
-                label,
-                srOnly,
-                striped,
-                animated,
-                bsPrefix,
-                variant,
-              },
-              ref,
-            )}
+        <div
+          className={clsx(className, `${bsPrefix}-bar`, {
+            [`bg-${variant}`]: variant,
+            [`${bsPrefix}-bar-animated`]: animated,
+            [`${bsPrefix}-bar-striped`]: animated || striped,
+          })}
+          style={
+            // Stacked progress bar width style is on the parent.
+            isChild ? undefined : { width }
+          }
+        >
+          {visuallyHidden ? (
+            <span className="visually-hidden">{label}</span>
+          ) : (
+            label
+          )}
+        </div>
       </div>
     );
   },
 );
 
 ProgressBar.displayName = 'ProgressBar';
-ProgressBar.propTypes = propTypes;
-ProgressBar.defaultProps = defaultProps;
 
 export default ProgressBar;

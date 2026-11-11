@@ -1,38 +1,42 @@
-import PropTypes from 'prop-types';
-import React from 'react';
-import classNames from 'classnames';
+import * as React from 'react';
+import clsx from 'clsx';
+import type { LiteralUnion } from './types.js';
 
-export interface CloseButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  label?: string;
+export type CloseButtonVariant = LiteralUnion<'white', string>;
+
+export interface CloseButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /**
+   * An accessible label indicating the relevant information about the Close Button.
+   */
+  'aria-label'?: string | undefined;
+
+  /**
+   * Render different color variant for the button.
+   *
+   * Omitting this will render the default dark color.
+   */
+  variant?: CloseButtonVariant | undefined;
 }
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  onClick: PropTypes.func,
-};
-
-const defaultProps = {
-  label: 'Close',
-};
-
 const CloseButton = React.forwardRef<HTMLButtonElement, CloseButtonProps>(
-  ({ label, onClick, className, ...props }: CloseButtonProps, ref) => (
+  (
+    { className, variant, 'aria-label': ariaLabel = 'Close', ...props },
+    ref,
+  ) => (
     <button
       ref={ref}
       type="button"
-      className={classNames('close', className)}
-      onClick={onClick}
+      className={clsx(
+        'btn-close',
+        variant && `btn-close-${variant}`,
+        className,
+      )}
+      aria-label={ariaLabel}
       {...props}
-    >
-      <span aria-hidden="true">&times;</span>
-      <span className="sr-only">{label}</span>
-    </button>
+    />
   ),
 );
 
 CloseButton.displayName = 'CloseButton';
-CloseButton.propTypes = propTypes;
-CloseButton.defaultProps = defaultProps;
 
 export default CloseButton;

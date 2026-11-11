@@ -1,142 +1,85 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useContext } from 'react';
-import useEventCallback from '@restart/hooks/useEventCallback';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useDropdownItem } from '@restart/ui/DropdownItem';
+import Anchor from '@restart/ui/Anchor';
+import type {
+  DynamicRefForwardingComponent,
+  EventKey,
+} from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
 
-import SelectableContext, { makeEventKey } from './SelectableContext';
-import { useBootstrapPrefix } from './ThemeProvider';
-import NavContext from './NavContext';
-import SafeAnchor from './SafeAnchor';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-  SelectCallback,
-} from './helpers';
-import { EventKey } from './types';
+export interface DropdownItemProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface DropdownItemProps extends BsPrefixPropsWithChildren {
-  active?: boolean;
-  disabled?: boolean;
-  eventKey?: EventKey;
-  href?: string;
-  onClick?: React.MouseEventHandler<this>;
-  onSelect?: SelectCallback;
-}
-
-type DropdownItem = BsPrefixRefForwardingComponent<
-  typeof SafeAnchor,
-  DropdownItemProps
->;
-
-const propTypes = {
-  /** @default 'dropdown-item' */
-  bsPrefix: PropTypes.string,
+  /**
+   * @default 'dropdown-item'
+   */
+  bsPrefix?: string | undefined;
 
   /**
    * Highlight the menu item as active.
    */
-  active: PropTypes.bool,
+  active?: boolean | undefined;
 
   /**
    * Disable the menu item, making it unselectable.
    */
-  disabled: PropTypes.bool,
+  disabled?: boolean | undefined;
 
   /**
    * Value passed to the `onSelect` handler, useful for identifying the selected menu item.
    */
-  eventKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  eventKey?: EventKey | undefined;
 
   /**
    * HTML `href` attribute corresponding to `a.href`.
    */
-  href: PropTypes.string,
+  href?: string | undefined;
+}
 
-  /**
-   * Callback fired when the menu item is clicked.
-   */
-  onClick: PropTypes.func,
+const DropdownItem: DynamicRefForwardingComponent<'a', DropdownItemProps> =
+  React.forwardRef<HTMLElement, DropdownItemProps>(
+    (
+      {
+        bsPrefix,
+        className,
+        eventKey,
+        disabled = false,
+        onClick,
+        active,
+        as: Component = Anchor,
+        ...props
+      },
+      ref,
+    ) => {
+      const prefix = useBootstrapPrefix(bsPrefix, 'dropdown-item');
+      const [dropdownItemProps, meta] = useDropdownItem({
+        key: eventKey,
+        href: props.href,
+        disabled,
+        onClick,
+        active,
+      });
 
-  /**
-   * Callback fired when the menu item is selected.
-   *
-   * ```js
-   * (eventKey: any, event: Object) => any
-   * ```
-   */
-  onSelect: PropTypes.func,
-
-  as: PropTypes.elementType,
-};
-
-const defaultProps = {
-  as: SafeAnchor,
-  disabled: false,
-};
-
-const DropdownItem: DropdownItem = React.forwardRef(
-  (
-    {
-      bsPrefix,
-      className,
-      children,
-      eventKey,
-      disabled,
-      href,
-      onClick,
-      onSelect,
-      active: propActive,
-      as: Component,
-      ...props
-    }: DropdownItemProps,
-    ref,
-  ) => {
-    const prefix = useBootstrapPrefix(bsPrefix, 'dropdown-item');
-    const onSelectCtx = useContext(SelectableContext);
-    const navContext = useContext(NavContext);
-
-    const { activeKey } = navContext || {};
-
-    const key = makeEventKey(eventKey, href);
-
-    const active =
-      propActive == null && key != null
-        ? makeEventKey(activeKey) === key
-        : propActive;
-
-    const handleClick = useEventCallback((event) => {
-      // SafeAnchor handles the disabled case, but we handle it here
-      // for other components
-      if (disabled) return;
-      if (onClick) onClick(event);
-      if (onSelectCtx) onSelectCtx(key, event);
-      if (onSelect) onSelect(key, event);
-    });
-
-    return (
-      // "TS2604: JSX element type 'Component' does not have any construct or call signatures."
-      // @ts-ignore
-      <Component
-        {...props}
-        ref={ref}
-        href={href}
-        disabled={disabled}
-        className={classNames(
-          className,
-          prefix,
-          active && 'active',
-          disabled && 'disabled',
-        )}
-        onClick={handleClick}
-      >
-        {children}
-      </Component>
-    );
-  },
-);
+      return (
+        <Component
+          {...props}
+          {...dropdownItemProps}
+          ref={ref}
+          className={clsx(
+            className,
+            prefix,
+            meta.isActive && 'active',
+            disabled && 'disabled',
+          )}
+        />
+      );
+    },
+  );
 
 DropdownItem.displayName = 'DropdownItem';
-DropdownItem.propTypes = propTypes;
-DropdownItem.defaultProps = defaultProps;
 
 export default DropdownItem;

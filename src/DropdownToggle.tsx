@@ -1,58 +1,50 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import isRequiredForA11y from 'prop-types-extra/lib/isRequiredForA11y';
-import React from 'react';
-import { useDropdownToggle } from 'react-overlays/DropdownToggle';
 import useMergedRefs from '@restart/hooks/useMergedRefs';
-import Button, { ButtonProps, CommonButtonProps } from './Button';
-import { useBootstrapPrefix } from './ThemeProvider';
-import useWrappedRefWithWarning from './useWrappedRefWithWarning';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+import DropdownContext from '@restart/ui/DropdownContext';
+import { useDropdownToggle } from '@restart/ui/DropdownToggle';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import clsx from 'clsx';
+import * as React from 'react';
+import { useContext } from 'react';
+import Button, { type ButtonProps, type CommonButtonProps } from './Button.js';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import useWrappedRefWithWarning from './useWrappedRefWithWarning.js';
 
-export interface DropdownToggleProps
-  extends BsPrefixPropsWithChildren,
-    ButtonProps {
-  split?: boolean;
-  childBsPrefix?: string;
+export interface DropdownToggleProps extends Omit<ButtonProps, 'as'> {
+  /**
+   * Element used to render the component.
+   *
+   * @default {Button}
+   */
+  as?: React.ElementType | undefined;
+
+  /**
+   * @default 'dropdown-toggle'
+   */
+  bsPrefix?: string | undefined;
+
+  /**
+   * Renders a split button dropdown toggle.
+   */
+  split?: boolean | undefined;
+
+  /**
+   * To passthrough to the underlying button or whatever from DropdownButton
+   * @private
+   * @internal
+   */
+  childBsPrefix?: string | undefined;
 }
 
-type DropdownToggle = BsPrefixRefForwardingComponent<
+type DropdownToggleComponent = DynamicRefForwardingComponent<
   'button',
   DropdownToggleProps
 >;
 
 export type PropsFromToggle = Partial<
-  Pick<React.ComponentPropsWithRef<DropdownToggle>, CommonButtonProps>
+  Pick<React.ComponentPropsWithRef<DropdownToggleComponent>, CommonButtonProps>
 >;
 
-const propTypes = {
-  /**
-   * @default 'dropdown-toggle'
-   */
-  bsPrefix: PropTypes.string,
-
-  /**
-   * An html id attribute, necessary for assistive technologies, such as screen readers.
-   * @type {string|number}
-   * @required
-   */
-  id: isRequiredForA11y(PropTypes.any),
-
-  split: PropTypes.bool,
-
-  as: PropTypes.elementType,
-
-  /**
-   * to passthrough to the underlying button or whatever from DropdownButton
-   * @private
-   */
-  childBsPrefix: PropTypes.string,
-};
-
-const DropdownToggle: DropdownToggle = React.forwardRef(
+const DropdownToggle: DropdownToggleComponent = React.forwardRef(
   (
     {
       bsPrefix,
@@ -66,6 +58,7 @@ const DropdownToggle: DropdownToggle = React.forwardRef(
     ref,
   ) => {
     const prefix = useBootstrapPrefix(bsPrefix, 'dropdown-toggle');
+    const dropdownContext = useContext(DropdownContext);
 
     if (childBsPrefix !== undefined) {
       (props as any).bsPrefix = childBsPrefix;
@@ -82,7 +75,12 @@ const DropdownToggle: DropdownToggle = React.forwardRef(
     // underlying component, to allow it to render size and style variants.
     return (
       <Component
-        className={classNames(className, prefix, split && `${prefix}-split`)}
+        className={clsx(
+          className,
+          prefix,
+          split && `${prefix}-split`,
+          dropdownContext?.show && 'show',
+        )}
         {...toggleProps}
         {...props}
       />
@@ -91,6 +89,5 @@ const DropdownToggle: DropdownToggle = React.forwardRef(
 );
 
 DropdownToggle.displayName = 'DropdownToggle';
-DropdownToggle.propTypes = propTypes;
 
 export default DropdownToggle;

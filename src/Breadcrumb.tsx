@@ -1,76 +1,66 @@
-import classNames from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import * as React from 'react';
+import type { DynamicRefForwardingComponent } from '@restart/ui/types';
+import { useBootstrapPrefix } from './ThemeProvider.js';
+import BreadcrumbItem from './BreadcrumbItem.js';
 
-import { useBootstrapPrefix } from './ThemeProvider';
-import BreadcrumbItem from './BreadcrumbItem';
-import {
-  BsPrefixPropsWithChildren,
-  BsPrefixRefForwardingComponent,
-} from './helpers';
+export interface BreadcrumbProps extends React.HTMLAttributes<HTMLElement> {
+  /**
+   * Element used to render the component.
+   */
+  as?: React.ElementType | undefined;
 
-export interface BreadcrumbProps extends BsPrefixPropsWithChildren {
-  className?: string;
-  label?: string;
-  listProps?: React.OlHTMLAttributes<HTMLOListElement>;
-}
-
-type Breadcrumb = BsPrefixRefForwardingComponent<'nav', BreadcrumbProps> & {
-  Item: typeof BreadcrumbItem;
-};
-
-const propTypes = {
   /**
    * @default 'breadcrumb'
    */
-  bsPrefix: PropTypes.string,
+  bsPrefix?: string | undefined;
+
   /**
    * ARIA label for the nav element
    * https://www.w3.org/TR/wai-aria-practices/#breadcrumb
    */
-  label: PropTypes.string,
+  label?: string | undefined;
+
   /**
    * Additional props passed as-is to the underlying `<ol>` element
    */
-  listProps: PropTypes.object,
+  listProps?: React.OlHTMLAttributes<HTMLOListElement> | undefined;
+}
 
-  as: PropTypes.elementType,
-};
+const Breadcrumb: DynamicRefForwardingComponent<'nav', BreadcrumbProps> =
+  React.forwardRef<HTMLElement, BreadcrumbProps>(
+    (
+      {
+        bsPrefix,
+        className,
+        listProps = {},
+        children,
+        label = 'breadcrumb',
+        // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
+        as: Component = 'nav',
+        ...props
+      },
+      ref,
+    ) => {
+      const prefix = useBootstrapPrefix(bsPrefix, 'breadcrumb');
 
-const defaultProps = {
-  label: 'breadcrumb',
-  listProps: {},
-};
-
-const Breadcrumb: Breadcrumb = (React.forwardRef(
-  (
-    {
-      bsPrefix,
-      className,
-      listProps,
-      children,
-      label,
-      // Need to define the default "as" during prop destructuring to be compatible with styled-components github.com/react-bootstrap/react-bootstrap/issues/3595
-      as: Component = 'nav',
-      ...props
-    }: BreadcrumbProps,
-    ref,
-  ) => {
-    const prefix = useBootstrapPrefix(bsPrefix, 'breadcrumb');
-
-    return (
-      <Component aria-label={label} className={className} ref={ref} {...props}>
-        <ol {...listProps} className={classNames(prefix, listProps?.className)}>
-          {children}
-        </ol>
-      </Component>
-    );
-  },
-) as unknown) as Breadcrumb;
+      return (
+        <Component
+          aria-label={label}
+          className={className}
+          ref={ref}
+          {...props}
+        >
+          <ol {...listProps} className={clsx(prefix, listProps?.className)}>
+            {children}
+          </ol>
+        </Component>
+      );
+    },
+  );
 
 Breadcrumb.displayName = 'Breadcrumb';
-Breadcrumb.propTypes = propTypes;
-Breadcrumb.defaultProps = defaultProps;
-Breadcrumb.Item = BreadcrumbItem;
 
-export default Breadcrumb;
+export default Object.assign(Breadcrumb, {
+  Item: BreadcrumbItem,
+});

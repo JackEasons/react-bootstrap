@@ -1,8 +1,0 @@
-{
-  "extends": ["@react-bootstrap", "4catalyzer-typescript", "prettier"],
-  "plugins": ["prettier"],
-  "rules": {
-    "import/extensions": "off",
-    "prettier/prettier": "warn"
-  }
-}
